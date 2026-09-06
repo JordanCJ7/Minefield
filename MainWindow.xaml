@@ -94,7 +94,7 @@
                 <!-- In-Viewport Telemetry HUD Glass Card (Top Left) -->
                 <Border HorizontalAlignment="Left" VerticalAlignment="Top"
                         Margin="16,14"
-                        Background="{StaticResource BgGlassColor}"
+                        Background="{StaticResource BgGlassBrush}"
                         BorderBrush="{StaticResource BorderGlassBrush}"
                         BorderThickness="1"
                         CornerRadius="6"
@@ -125,7 +125,7 @@
                 <!-- Navigation Controls Help Card (Top Right) -->
                 <Border HorizontalAlignment="Right" VerticalAlignment="Top"
                         Margin="16,14"
-                        Background="{StaticResource BgGlassColor}"
+                        Background="{StaticResource BgGlassBrush}"
                         BorderBrush="{StaticResource BorderGlassBrush}"
                         BorderThickness="1"
                         CornerRadius="6"
@@ -245,7 +245,7 @@
 
             <!-- ================= BOTTOM STATUS STRIP ================= -->
             <Border Grid.Row="2"
-                    Background="{StaticResource BgGlassColor}"
+                    Background="{StaticResource BgGlassBrush}"
                     BorderBrush="{StaticResource BorderGlassBrush}"
                     BorderThickness="0,1,0,0"
                     CornerRadius="0,0,10,10">

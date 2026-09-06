@@ -3,12 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-        <!-- Futuristic Glassmorphism Dark Theme Palette -->
+        <!-- Futuristic Glassmorphism Dark Theme Palette (WPF #AARRGGBB) -->
         <Color x:Key="BgDarkColor">#070B14</Color>
-        <Color x:Key="BgGlassColor">#0D1526D9</Color>
-        <Color x:Key="BgGlassLighterColor">#142036BF</Color>
-        <Color x:Key="BorderGlassColor">#00E5FF33</Color>
-        <Color x:Key="BorderActiveColor">#00E5FF88</Color>
+        <Color x:Key="BgGlassColor">#D90D1526</Color>
+        <Color x:Key="BgGlassLighterColor">#BF142036</Color>
+        <Color x:Key="BorderGlassColor">#3300E5FF</Color>
+        <Color x:Key="BorderActiveColor">#8800E5FF</Color>
         <Color x:Key="NeonCyanColor">#00E5FF</Color>
         <Color x:Key="NeonPurpleColor">#B388FF</Color>
         <Color x:Key="NeonEmeraldColor">#00E676</Color>
