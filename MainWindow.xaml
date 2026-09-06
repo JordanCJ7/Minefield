@@ -142,6 +142,105 @@
                                 Padding="6,2" Cursor="Hand" Click="BtnResetCamera_Click" />
                     </StackPanel>
                 </Border>
+
+                <!-- ================= TOP CENTER: PROGRESSION & STATS HUD ================= -->
+                <Border HorizontalAlignment="Center" VerticalAlignment="Top"
+                        Margin="0,14,0,0"
+                        Background="#E60A101D"
+                        BorderBrush="{StaticResource BorderActiveBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="16,8"
+                        Effect="{StaticResource PanelShadow}">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Level & Rank Badge -->
+                        <Border Background="#1A00E5FF" BorderBrush="{StaticResource NeonCyanBrush}" BorderThickness="1" CornerRadius="4" Padding="8,4" Margin="0,0,14,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="LVL " FontFamily="Consolas" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" />
+                                <TextBlock x:Name="TxtLevel" Text="01" FontFamily="Consolas" FontSize="12" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" />
+                                <TextBlock Text=" [OPERATIVE]" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" Margin="4,0,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- XP Bar -->
+                        <StackPanel VerticalAlignment="Center" Margin="0,0,16,0" Width="140">
+                            <Grid Margin="0,0,0,2">
+                                <TextBlock Text="EXPERIENCE" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Left" />
+                                <TextBlock x:Name="TxtXpProgress" Text="0 / 1,000" FontFamily="Consolas" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource NeonCyanBrush}" HorizontalAlignment="Right" />
+                            </Grid>
+                            <Border Height="7" Background="#142036" CornerRadius="3" BorderBrush="#203050" BorderThickness="1">
+                                <ProgressBar x:Name="PbXp" Value="0" Maximum="1000" Height="5" Background="Transparent" Foreground="{StaticResource NeonCyanBrush}" BorderThickness="0" Margin="1" />
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Energy Stamina Bar -->
+                        <StackPanel VerticalAlignment="Center" Margin="0,0,16,0" Width="140">
+                            <Grid Margin="0,0,0,2">
+                                <TextBlock Text="ENERGY CORE" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Left" />
+                                <TextBlock x:Name="TxtEnergy" Text="100 / 100" FontFamily="Consolas" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource NeonEmeraldBrush}" HorizontalAlignment="Right" />
+                            </Grid>
+                            <Border Height="7" Background="#142036" CornerRadius="3" BorderBrush="#203050" BorderThickness="1">
+                                <ProgressBar x:Name="PbEnergy" Value="100" Maximum="100" Height="5" Background="Transparent" Foreground="{StaticResource NeonEmeraldBrush}" BorderThickness="0" Margin="1" />
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Combo Multiplier Badge -->
+                        <Border Background="#1AFFD600" BorderBrush="#88FFD600" BorderThickness="1" CornerRadius="4" Padding="8,4">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="COMBO " FontFamily="Consolas" FontSize="10" Foreground="#FFA726" VerticalAlignment="Center" />
+                                <TextBlock x:Name="TxtCombo" Text="x1.0" FontFamily="Consolas" FontSize="13" FontWeight="Bold" Foreground="#FFD600" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- ================= TARGETING BANNER (When Drone Active) ================= -->
+                <Border x:Name="BannerTargeting" HorizontalAlignment="Center" VerticalAlignment="Top"
+                        Margin="0,68,0,0" Visibility="Collapsed"
+                        Background="#CC00E5FF" BorderBrush="#FFFFFF" BorderThickness="1" CornerRadius="4" Padding="14,4">
+                    <TextBlock Text="🎯 TARGETING MODE ACTIVE: CLICK ANY CELL TO SCAN 3x3 SECTOR" FontFamily="Consolas" FontWeight="Bold" FontSize="11" Foreground="#080C14" />
+                </Border>
+
+                <!-- ================= BOTTOM CENTER: TECH TREE & ABILITY HOTBAR ================= -->
+                <Border HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                        Margin="0,0,0,14"
+                        Background="#E60A101D"
+                        BorderBrush="{StaticResource BorderGlassBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="10,6"
+                        Effect="{StaticResource PanelShadow}">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Ability 1: Recon Drone -->
+                        <Button x:Name="BtnDrone" Click="BtnDrone_Click" Cursor="Hand" Margin="0,0,8,0"
+                                Background="#1A00E5FF" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1"
+                                Padding="10,4">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="⯐ RECON DRONE [1] " FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" />
+                                <Border Background="#3300E5FF" CornerRadius="3" Padding="4,1">
+                                    <TextBlock x:Name="TxtDroneCharges" Text="2x" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="#FFFFFF" />
+                                </Border>
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Ability 2: Blast Shield -->
+                        <Border x:Name="BadgeShield" Margin="0,0,8,0" Background="#1400E676" BorderBrush="#4400E676" BorderThickness="1" CornerRadius="4" Padding="10,4">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🛡 BLAST SHIELD [PASSIVE] " FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonEmeraldBrush}" />
+                                <Border Background="#3300E676" CornerRadius="3" Padding="4,1">
+                                    <TextBlock x:Name="TxtShieldCharges" Text="1 CHARGE" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="#FFFFFF" />
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- SFX Audio Toggle -->
+                        <Button x:Name="BtnAudioToggle" Click="BtnAudioToggle_Click" Cursor="Hand"
+                                Background="#1AFFFFFF" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1"
+                                Padding="8,4">
+                            <TextBlock x:Name="TxtAudioToggle" Text="🔊 SFX: ON [M]" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" />
+                        </Button>
+                    </StackPanel>
+                </Border>
             </Grid>
 
             <!-- ================= BOTTOM STATUS STRIP ================= -->

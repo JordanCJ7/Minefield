@@ -205,7 +205,7 @@ public class InfiniteGridRenderer : IDisposable
     /// <summary>
     /// Renders the infinite grid, streamed chunks, tiles, and telemetry visuals.
     /// </summary>
-    public void Render(SKCanvas canvas, float width, float height, Camera camera, SKPoint? mouseScreenPos, ChunkManager? chunkManager = null)
+    public void Render(SKCanvas canvas, float width, float height, Camera camera, SKPoint? mouseScreenPos, ChunkManager? chunkManager = null, ParticleSystem? particleSystem = null)
     {
         // 1. Clear Viewport Background
         canvas.DrawRect(0, 0, width, height, _backgroundPaint);
@@ -415,9 +415,12 @@ public class InfiniteGridRenderer : IDisposable
         canvas.DrawLine(0, -crosshairSize, 0, crosshairSize, _originCrosshairPaint);
         canvas.DrawCircle(0, 0, 5.0f / camera.Zoom, _originCrosshairPaint);
 
+        // 9. World Particles & Shockwaves
+        particleSystem?.Render(canvas, camera);
+
         canvas.Restore();
 
-        // 9. Screen-Space Ambient Vignette
+        // 10. Screen-Space Ambient Vignette
         using var vignettePaint = new SKPaint
         {
             Shader = SKShader.CreateRadialGradient(

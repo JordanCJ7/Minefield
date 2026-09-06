@@ -1,24 +1,34 @@
 using System;
 using System.Collections.Generic;
+using Minefield.Rendering;
 
 namespace Minefield.Engine;
 
 /// <summary>
 /// Controls interactive gameplay mechanics: cell reveals, flagging, chording,
-/// cross-chunk flood-fill algorithms, and sector lock evaluation.
+/// abilities (Recon Drone, Blast Shield), particle effects, and audio synthesis.
 /// </summary>
 public class GameSession
 {
     private readonly ChunkManager _chunkManager;
+    private readonly PlayerProfile _profile;
+    private readonly ParticleSystem? _particles;
+    private readonly SynthesizedAudio? _audio;
+
+    public PlayerProfile Profile => _profile;
+    public bool IsTargetingDrone { get; set; } = false;
 
     public event Action<int, int>? OnCellRevealed;       // (worldCellX, worldCellY)
     public event Action<int, int>? OnMineDetonated;      // (worldCellX, worldCellY)
     public event Action<int, int>? OnSectorLocked;       // (chunkX, chunkY)
     public event Action<int, int>? OnFlagToggled;        // (worldCellX, worldCellY)
 
-    public GameSession(ChunkManager chunkManager)
+    public GameSession(ChunkManager chunkManager, PlayerProfile? profile = null, ParticleSystem? particles = null, SynthesizedAudio? audio = null)
     {
         _chunkManager = chunkManager;
+        _profile = profile ?? new PlayerProfile();
+        _particles = particles;
+        _audio = audio;
     }
 
     /// <summary>
@@ -26,6 +36,13 @@ public class GameSession
     /// </summary>
     public void RevealCell(int worldCellX, int worldCellY)
     {
+        if (IsTargetingDrone)
+        {
+            ExecuteReconDrone(worldCellX, worldCellY);
+            IsTargetingDrone = false;
+            return;
+        }
+
         if (!_chunkManager.TryGetCell(worldCellX, worldCellY, out Chunk? chunk, out int lx, out int ly) || chunk == null)
             return;
 
@@ -35,16 +52,35 @@ public class GameSession
         if (state != CellState.Hidden) return; // Cannot reveal flagged or already revealed
 
         byte content = chunk.GetContent(lx, ly);
+        float cellWorldX = (worldCellX + 0.5f) * Camera.CellSize;
+        float cellWorldY = (worldCellY + 0.5f) * Camera.CellSize;
 
         if (content == CellContent.Mine)
         {
-            chunk.SetState(lx, ly, CellState.Detonated);
-            OnMineDetonated?.Invoke(worldCellX, worldCellY);
+            _profile.DeductMineEnergy(out bool shieldAbsorbed);
+
+            if (shieldAbsorbed)
+            {
+                // Deflected! Flag the mine safely instead of exploding
+                chunk.SetState(lx, ly, CellState.Flagged);
+                _audio?.PlayShieldDeflect();
+                _particles?.EmitRevealSparkles(cellWorldX, cellWorldY);
+            }
+            else
+            {
+                chunk.SetState(lx, ly, CellState.Detonated);
+                _audio?.PlayDetonation();
+                _particles?.EmitExplosion(cellWorldX, cellWorldY);
+                OnMineDetonated?.Invoke(worldCellX, worldCellY);
+            }
             return;
         }
 
         // Reveal safe cell
         chunk.SetState(lx, ly, CellState.Revealed);
+        _profile.AddSafeCellXP();
+        _audio?.PlayClick();
+        _particles?.EmitRevealSparkles(cellWorldX, cellWorldY);
         OnCellRevealed?.Invoke(worldCellX, worldCellY);
 
         // Flood fill if empty cell (0 adjacent mines)
@@ -81,6 +117,7 @@ public class GameSession
                                 if (nContent != CellContent.Mine)
                                 {
                                     nChunk.SetState(nlx, nly, CellState.Revealed);
+                                    _profile.AddSafeCellXP();
                                     affectedChunks.Add(nChunk);
                                     OnCellRevealed?.Invoke(nx, ny);
 
@@ -99,7 +136,7 @@ public class GameSession
             {
                 if (achunk.CheckAndLock())
                 {
-                    OnSectorLocked?.Invoke(achunk.ChunkX, achunk.ChunkY);
+                    HandleSectorLocked(achunk);
                 }
             }
         }
@@ -107,7 +144,7 @@ public class GameSession
         {
             if (chunk.CheckAndLock())
             {
-                OnSectorLocked?.Invoke(chunk.ChunkX, chunk.ChunkY);
+                HandleSectorLocked(chunk);
             }
         }
     }
@@ -126,11 +163,13 @@ public class GameSession
         if (state == CellState.Hidden)
         {
             chunk.SetState(lx, ly, CellState.Flagged);
+            _audio?.PlayFlag();
             OnFlagToggled?.Invoke(worldCellX, worldCellY);
         }
         else if (state == CellState.Flagged)
         {
             chunk.SetState(lx, ly, CellState.Hidden);
+            _audio?.PlayFlag();
             OnFlagToggled?.Invoke(worldCellX, worldCellY);
         }
     }
@@ -149,7 +188,6 @@ public class GameSession
         byte clue = chunk.GetContent(lx, ly);
         if (clue < 1 || clue > 8) return;
 
-        // Count adjacent flags and collect hidden neighbors across chunks
         int flaggedCount = 0;
         var hiddenNeighbors = new List<(int X, int Y)>();
 
@@ -170,7 +208,6 @@ public class GameSession
             }
         }
 
-        // If flags match clue, reveal all hidden neighbors
         if (flaggedCount == clue && hiddenNeighbors.Count > 0)
         {
             foreach (var (hx, hy) in hiddenNeighbors)
@@ -178,5 +215,60 @@ public class GameSession
                 RevealCell(hx, hy);
             }
         }
+    }
+
+    /// <summary>
+    /// Executes Recon Drone scan on a 3x3 region: reveals safe cells and flags mines without risk.
+    /// </summary>
+    public void ExecuteReconDrone(int centerWorldCellX, int centerWorldCellY)
+    {
+        if (_profile.ReconDronesAvailable <= 0) return;
+
+        _profile.ReconDronesAvailable--;
+        float scanCenterX = (centerWorldCellX + 0.5f) * Camera.CellSize;
+        float scanCenterY = (centerWorldCellY + 0.5f) * Camera.CellSize;
+
+        _audio?.PlayDroneScan();
+        _particles?.EmitDroneScan(scanCenterX, scanCenterY);
+
+        for (int dy = -1; dy <= 1; dy++)
+        {
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                int wx = centerWorldCellX + dx;
+                int wy = centerWorldCellY + dy;
+
+                if (_chunkManager.TryGetCell(wx, wy, out Chunk? chunk, out int lx, out int ly) && chunk != null)
+                {
+                    if (chunk.IsLocked) continue;
+
+                    CellState state = chunk.GetState(lx, ly);
+                    if (state == CellState.Hidden)
+                    {
+                        if (chunk.IsMine(lx, ly))
+                        {
+                            chunk.SetState(lx, ly, CellState.Flagged);
+                            OnFlagToggled?.Invoke(wx, wy);
+                        }
+                        else
+                        {
+                            RevealCell(wx, wy);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void HandleSectorLocked(Chunk chunk)
+    {
+        _profile.AddSectorLockXP();
+        _audio?.PlaySectorLock();
+
+        float chunkLeft = chunk.ChunkX * Camera.ChunkSize;
+        float chunkTop = chunk.ChunkY * Camera.ChunkSize;
+        _particles?.EmitSectorLockBurst(chunkLeft, chunkTop, Camera.ChunkSize);
+
+        OnSectorLocked?.Invoke(chunk.ChunkX, chunk.ChunkY);
     }
 }

@@ -12,14 +12,17 @@ using Minefield.Rendering;
 namespace Minefield;
 
 /// <summary>
-/// Main Game Window hosting the SkiaSharp immediate-mode rendering engine
-/// and the high-tech WPF glassmorphism HUD overlays.
+/// Main Game Window hosting the SkiaSharp immediate-mode rendering engine,
+/// particle physics system, synthesized audio, and high-tech WPF glassmorphism HUD.
 /// </summary>
 public partial class MainWindow : Window
 {
     private readonly Camera _camera = new();
     private readonly InfiniteGridRenderer _gridRenderer = new();
     private readonly ChunkManager _chunkManager = new();
+    private readonly PlayerProfile _profile = new();
+    private readonly ParticleSystem _particles = new();
+    private readonly SynthesizedAudio _audio = new();
     private readonly GameSession _gameSession;
 
     // Mouse Navigation & Gameplay State
@@ -29,8 +32,9 @@ public partial class MainWindow : Window
     private bool _hasDragged;
     private SKPoint? _lastMouseScreenPixel;
 
-    // Real-Time FPS Tracking
+    // Frame Timing & FPS
     private readonly Stopwatch _fpsStopwatch = Stopwatch.StartNew();
+    private readonly Stopwatch _deltaStopwatch = Stopwatch.StartNew();
     private int _frameCount;
     private double _lastFpsUpdate;
     private double _currentFps = 60.0;
@@ -39,20 +43,64 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        _gameSession = new GameSession(_chunkManager);
+        _gameSession = new GameSession(_chunkManager, _profile, _particles, _audio);
         _gameSession.OnSectorLocked += GameSession_OnSectorLocked;
         _gameSession.OnMineDetonated += GameSession_OnMineDetonated;
 
-        // Subscribe to CompositionTarget.Rendering for smooth continuous rendering
+        _profile.OnProfileChanged += UpdateHudStats;
+        _profile.OnStatusMessage += msg => Dispatcher.Invoke(() => TxtSectorStatus.Text = msg);
+
+        // Load existing player profile from SQLite
+        _profile.LoadFromDatabase();
+
+        // Continuous 60+ FPS rendering loop
         CompositionTarget.Rendering += OnCompositionRendering;
 
+        KeyDown += MainWindow_KeyDown;
         Loaded += MainWindow_Loaded;
         Closed += MainWindow_Closed;
     }
 
+    private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        UpdateTelemetry(0, 0);
+        UpdateHudStats();
+    }
+
+    private async void MainWindow_Closed(object? sender, EventArgs e)
+    {
+        CompositionTarget.Rendering -= OnCompositionRendering;
+        _profile.SaveToDatabase();
+        await _chunkManager.DisposeAsync();
+        _particles.Dispose();
+        _audio.Dispose();
+        _gridRenderer.Dispose();
+    }
+
+    private void UpdateHudStats()
+    {
+        Dispatcher.Invoke(() =>
+        {
+            TxtLevel.Text = $"{_profile.Level:D2}";
+            TxtXpProgress.Text = $"{_profile.CurrentXP:N0} / {_profile.XPForNextLevel:N0}";
+            PbXp.Maximum = _profile.XPForNextLevel;
+            PbXp.Value = _profile.CurrentXP;
+
+            TxtEnergy.Text = $"{_profile.CurrentEnergy} / {_profile.MaxEnergy}";
+            PbEnergy.Maximum = _profile.MaxEnergy;
+            PbEnergy.Value = _profile.CurrentEnergy;
+
+            TxtCombo.Text = $"x{_profile.ComboMultiplier:F1}";
+
+            TxtDroneCharges.Text = $"{_profile.ReconDronesAvailable}x";
+            TxtShieldCharges.Text = $"{_profile.BlastShieldCharges} CHARGE{(_profile.BlastShieldCharges == 1 ? "" : "S")}";
+
+            BannerTargeting.Visibility = _gameSession.IsTargetingDrone ? Visibility.Visible : Visibility.Collapsed;
+        });
+    }
+
     private void GameSession_OnSectorLocked(int cx, int cy)
     {
-        // Visual notification in status strip
         Dispatcher.Invoke(() =>
         {
             TxtSectorStatus.Text = $"SECTOR [{cx}, {cy}] SECURED! +500 XP";
@@ -61,27 +109,20 @@ public partial class MainWindow : Window
 
     private void GameSession_OnMineDetonated(int wx, int wy)
     {
-        // Detonation notification
         Dispatcher.Invoke(() =>
         {
             TxtSectorStatus.Text = $"⚠ MINE DETONATION AT [{wx}, {wy}]!";
         });
     }
 
-    private void MainWindow_Loaded(object sender, RoutedEventArgs e)
-    {
-        UpdateTelemetry(0, 0);
-    }
-
-    private async void MainWindow_Closed(object? sender, EventArgs e)
-    {
-        CompositionTarget.Rendering -= OnCompositionRendering;
-        await _chunkManager.DisposeAsync();
-        _gridRenderer.Dispose();
-    }
-
     private void OnCompositionRendering(object? sender, EventArgs e)
     {
+        float dt = (float)_deltaStopwatch.Elapsed.TotalSeconds;
+        _deltaStopwatch.Restart();
+
+        // Update particle physics simulation
+        _particles.Update(Math.Min(0.05f, dt));
+
         // Update chunk streaming with current viewport dimensions
         var (dpiX, dpiY) = GetDpiScaling();
         float viewportWidth = (float)(SkiaCanvas.ActualWidth * dpiX);
@@ -92,11 +133,28 @@ public partial class MainWindow : Window
             _chunkManager.UpdateViewport(_camera, viewportWidth, viewportHeight);
         }
 
-        // Triggers Skia canvas redraw synchronized with the display refresh rate
+        // Redraw Skia canvas
         SkiaCanvas.InvalidateVisual();
     }
 
-    #region Window Controls & Dragging
+    #region Window Controls & Hotkeys
+
+    private void MainWindow_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.D1 || e.Key == Key.NumPad1)
+        {
+            ToggleDroneTargeting();
+        }
+        else if (e.Key == Key.M)
+        {
+            ToggleAudio();
+        }
+        else if (e.Key == Key.Home || e.Key == Key.D0)
+        {
+            _camera.Reset();
+            UpdateTelemetry(0, 0);
+        }
+    }
 
     private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
     {
@@ -142,6 +200,35 @@ public partial class MainWindow : Window
         SkiaCanvas.InvalidateVisual();
     }
 
+    private void BtnDrone_Click(object sender, RoutedEventArgs e)
+    {
+        ToggleDroneTargeting();
+    }
+
+    private void ToggleDroneTargeting()
+    {
+        if (_profile.ReconDronesAvailable <= 0)
+        {
+            TxtSectorStatus.Text = "NO RECON DRONES AVAILABLE! SECURE SECTORS TO ACQUIRE MORE.";
+            return;
+        }
+
+        _gameSession.IsTargetingDrone = !_gameSession.IsTargetingDrone;
+        BannerTargeting.Visibility = _gameSession.IsTargetingDrone ? Visibility.Visible : Visibility.Collapsed;
+        Cursor = _gameSession.IsTargetingDrone ? Cursors.Cross : Cursors.Arrow;
+    }
+
+    private void BtnAudioToggle_Click(object sender, RoutedEventArgs e)
+    {
+        ToggleAudio();
+    }
+
+    private void ToggleAudio()
+    {
+        _audio.IsMuted = !_audio.IsMuted;
+        TxtAudioToggle.Text = _audio.IsMuted ? "🔇 SFX: MUTED [M]" : "🔊 SFX: ON [M]";
+    }
+
     #endregion
 
     #region SkiaSharp Canvas & Input Handling
@@ -159,12 +246,12 @@ public partial class MainWindow : Window
             TxtFps.Text = $"{_currentFps:F1} FPS";
         }
 
-        // 2. Render Infinite Grid and Viewport
+        // 2. Render Infinite Grid, Chunks, and Particles
         int pixelWidth = e.Info.Width;
         int pixelHeight = e.Info.Height;
         SKCanvas canvas = e.Surface.Canvas;
 
-        _gridRenderer.Render(canvas, pixelWidth, pixelHeight, _camera, _lastMouseScreenPixel, _chunkManager);
+        _gridRenderer.Render(canvas, pixelWidth, pixelHeight, _camera, _lastMouseScreenPixel, _chunkManager, _particles);
     }
 
     private void SkiaCanvas_MouseDown(object sender, MouseButtonEventArgs e)
@@ -243,7 +330,7 @@ public partial class MainWindow : Window
         {
             _isPanning = false;
             SkiaCanvas.ReleaseMouseCapture();
-            Cursor = Cursors.Arrow;
+            Cursor = _gameSession.IsTargetingDrone ? Cursors.Cross : Cursors.Arrow;
 
             // If right button was released without dragging, treat as Toggle Flag!
             if (e.ChangedButton == MouseButton.Right && !_hasDragged)
@@ -264,19 +351,23 @@ public partial class MainWindow : Window
             }
         }
 
-        // Left Click: Reveal or Chord
+        // Left Click: Reveal, Drone Target, or Chord
         if (e.ChangedButton == MouseButton.Left)
         {
             if (!_hasDragged)
             {
                 if (e.ClickCount == 2)
                 {
-                    // Double-click chord
                     _gameSession.ChordCell(cellX, cellY);
                 }
                 else
                 {
                     _gameSession.RevealCell(cellX, cellY);
+                }
+
+                if (!_gameSession.IsTargetingDrone)
+                {
+                    Cursor = Cursors.Arrow;
                 }
 
                 SkiaCanvas.InvalidateVisual();
@@ -296,11 +387,9 @@ public partial class MainWindow : Window
         float viewportWidth = (float)(SkiaCanvas.ActualWidth * dpiX);
         float viewportHeight = (float)(SkiaCanvas.ActualHeight * dpiY);
 
-        // Smooth zoom step centered around mouse cursor
         float zoomFactor = e.Delta > 0 ? 1.15f : (1.0f / 1.15f);
         _camera.ZoomAt(new SKPoint(screenPixelX, screenPixelY), zoomFactor, viewportWidth, viewportHeight);
 
-        // Update telemetry
         SKPoint worldPoint = _camera.ScreenToWorld(new SKPoint(screenPixelX, screenPixelY), viewportWidth, viewportHeight);
         UpdateTelemetry(worldPoint.X, worldPoint.Y);
     }
