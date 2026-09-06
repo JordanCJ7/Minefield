@@ -15,6 +15,9 @@ public class Chunk
     public int ChunkX { get; set; }
     public int ChunkY { get; set; }
 
+    public int WorldOriginX => ChunkX * Dimension;
+    public int WorldOriginY => ChunkY * Dimension;
+
     public bool IsLocked { get; set; }
     public bool IsModified { get; set; }
     public bool IsGenerated { get; set; }

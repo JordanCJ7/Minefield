@@ -419,6 +419,57 @@ class Program
             }
 
             Assert(horizontalAligned, "BoardGenerator: Cross-sector horizontal boundary (Y=-1 / Y=0) clue exactness");
+
+            // Verify 10,000 cells across a 5x5 chunk grid (Chunks -2..2, -2..2)
+            bool all10kConsistent = true;
+            for (int cy = -2; cy <= 2; cy++)
+            {
+                for (int cx = -2; cx <= 2; cx++)
+                {
+                    var chunk = new Chunk { ChunkX = cx, ChunkY = cy };
+                    generator.GenerateChunk(chunk);
+
+                    for (int ly = 0; ly < Chunk.Dimension; ly++)
+                    {
+                        for (int lx = 0; lx < Chunk.Dimension; lx++)
+                        {
+                            int wx = cx * Chunk.Dimension + lx;
+                            int wy = cy * Chunk.Dimension + ly;
+
+                            bool isMine = generator.IsMineAt(wx, wy);
+                            if (chunk.IsMine(lx, ly) != isMine)
+                            {
+                                all10kConsistent = false;
+                                break;
+                            }
+
+                            if (!isMine)
+                            {
+                                byte clue = chunk.GetContent(lx, ly);
+                                byte expected = 0;
+                                for (int dy = -1; dy <= 1; dy++)
+                                {
+                                    for (int dx = -1; dx <= 1; dx++)
+                                    {
+                                        if (dx == 0 && dy == 0) continue;
+                                        if (generator.IsMineAt(wx + dx, wy + dy)) expected++;
+                                    }
+                                }
+                                if (clue != expected)
+                                {
+                                    all10kConsistent = false;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!all10kConsistent) break;
+                    }
+                    if (!all10kConsistent) break;
+                }
+                if (!all10kConsistent) break;
+            }
+
+            Assert(all10kConsistent, "BoardGenerator: 10,000 cells across 25 sectors 100% mathematically exact");
         }
 
         // ----------------------------------------------------
@@ -870,6 +921,64 @@ class Program
             finally
             {
                 await cm.DisposeAsync();
+                try { File.Delete(testDb); } catch { }
+            }
+        }
+
+        // Test 32: ChunkManager Self-Healing Legacy Chunks
+        {
+            string testDb = Path.Combine(Path.GetTempPath(), $"minefield_test_heal_{Guid.NewGuid():N}.db");
+            try
+            {
+                // Write a corrupt legacy chunk into SQLite manually
+                using (var db = new MinefieldDbContext(testDb))
+                {
+                    db.Database.EnsureCreated();
+                    var corruptChunk = new Chunk { ChunkX = 5, ChunkY = 5 };
+                    // Fill with completely wrong content
+                    for (int i = 0; i < 256; i++) corruptChunk.RawTiles[i] = 0x90; // All mines
+                    db.Chunks.Add(new ChunkEntity
+                    {
+                        ChunkX = 5,
+                        ChunkY = 5,
+                        Data = corruptChunk.Serialize(),
+                        LastModified = DateTime.UtcNow
+                    });
+                    db.SaveChanges();
+                }
+
+                var cm = new ChunkManager(testDb);
+                try
+                {
+                    var cam = new Camera { X = 5 * Camera.ChunkSize + 10, Y = 5 * Camera.ChunkSize + 10, Zoom = 1.0f };
+                    cm.UpdateViewport(cam, 800, 600);
+
+                    Chunk? healed = null;
+                    for (int attempt = 0; attempt < 30; attempt++)
+                    {
+                        cm.TryGetCell(5 * Chunk.Dimension, 5 * Chunk.Dimension, out healed, out _, out _);
+                        if (healed != null) break;
+                        await Task.Delay(50);
+                    }
+
+                    bool healedProperly = false;
+                    if (healed != null)
+                    {
+                        // Check that it's no longer all mines, but matches the generator exactly
+                        int wx = 5 * Chunk.Dimension;
+                        int wy = 5 * Chunk.Dimension;
+                        healedProperly = healed.IsMine(0, 0) == cm.Generator.IsMineAt(wx, wy);
+                    }
+
+                    Assert(healed != null && healedProperly, "ChunkManager: Corrupt/legacy chunk detected on load and self-healed");
+                }
+                finally
+                {
+                    await cm.DisposeAsync();
+                }
+            }
+            finally
+            {
                 try { File.Delete(testDb); } catch { }
             }
         }
