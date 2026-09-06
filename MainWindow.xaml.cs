@@ -19,6 +19,7 @@ public partial class MainWindow : Window
 {
     private readonly Camera _camera = new();
     private readonly InfiniteGridRenderer _gridRenderer = new();
+    private readonly ChunkManager _chunkManager = new();
 
     // Mouse Navigation State
     private bool _isPanning;
@@ -47,14 +48,25 @@ public partial class MainWindow : Window
         UpdateTelemetry(0, 0);
     }
 
-    private void MainWindow_Closed(object? sender, EventArgs e)
+    private async void MainWindow_Closed(object? sender, EventArgs e)
     {
         CompositionTarget.Rendering -= OnCompositionRendering;
+        await _chunkManager.DisposeAsync();
         _gridRenderer.Dispose();
     }
 
     private void OnCompositionRendering(object? sender, EventArgs e)
     {
+        // Update chunk streaming with current viewport dimensions
+        var (dpiX, dpiY) = GetDpiScaling();
+        float viewportWidth = (float)(SkiaCanvas.ActualWidth * dpiX);
+        float viewportHeight = (float)(SkiaCanvas.ActualHeight * dpiY);
+
+        if (viewportWidth > 0 && viewportHeight > 0)
+        {
+            _chunkManager.UpdateViewport(_camera, viewportWidth, viewportHeight);
+        }
+
         // Triggers Skia canvas redraw synchronized with the display refresh rate
         SkiaCanvas.InvalidateVisual();
     }
@@ -127,7 +139,7 @@ public partial class MainWindow : Window
         int pixelHeight = e.Info.Height;
         SKCanvas canvas = e.Surface.Canvas;
 
-        _gridRenderer.Render(canvas, pixelWidth, pixelHeight, _camera, _lastMouseScreenPixel);
+        _gridRenderer.Render(canvas, pixelWidth, pixelHeight, _camera, _lastMouseScreenPixel, _chunkManager);
     }
 
     private void SkiaCanvas_MouseDown(object sender, MouseButtonEventArgs e)
@@ -233,6 +245,7 @@ public partial class MainWindow : Window
         TxtChunkPos.Text = $"[{chunkX}, {chunkY}]";
 
         TxtZoom.Text = $"{(_camera.Zoom * 100.0f):F0}%";
+        TxtChunkCount.Text = $"{_chunkManager.ActiveChunks.Count} SECTORS ACTIVE (SQLite)";
     }
 
     #endregion

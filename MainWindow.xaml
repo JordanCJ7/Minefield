@@ -111,9 +111,13 @@
                             <TextBlock Text="  SECTOR: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="6,0,0,0" />
                             <TextBlock x:Name="TxtChunkPos" Text="[0, 0]" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonPurpleBrush}" />
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
                             <TextBlock Text="CAMERA ZOOM: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
                             <TextBlock x:Name="TxtZoom" Text="100%" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="STREAMING:   " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                            <TextBlock x:Name="TxtChunkCount" Text="0 SECTORS ACTIVE (SQLite)" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" />
                         </StackPanel>
                     </StackPanel>
                 </Border>
