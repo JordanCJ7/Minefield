@@ -20,10 +20,13 @@ public partial class MainWindow : Window
     private readonly Camera _camera = new();
     private readonly InfiniteGridRenderer _gridRenderer = new();
     private readonly ChunkManager _chunkManager = new();
+    private readonly GameSession _gameSession;
 
-    // Mouse Navigation State
+    // Mouse Navigation & Gameplay State
     private bool _isPanning;
     private Point _lastMousePosition;
+    private Point _mouseDownPos;
+    private bool _hasDragged;
     private SKPoint? _lastMouseScreenPixel;
 
     // Real-Time FPS Tracking
@@ -36,11 +39,33 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
+        _gameSession = new GameSession(_chunkManager);
+        _gameSession.OnSectorLocked += GameSession_OnSectorLocked;
+        _gameSession.OnMineDetonated += GameSession_OnMineDetonated;
+
         // Subscribe to CompositionTarget.Rendering for smooth continuous rendering
         CompositionTarget.Rendering += OnCompositionRendering;
 
         Loaded += MainWindow_Loaded;
         Closed += MainWindow_Closed;
+    }
+
+    private void GameSession_OnSectorLocked(int cx, int cy)
+    {
+        // Visual notification in status strip
+        Dispatcher.Invoke(() =>
+        {
+            TxtSectorStatus.Text = $"SECTOR [{cx}, {cy}] SECURED! +500 XP";
+        });
+    }
+
+    private void GameSession_OnMineDetonated(int wx, int wy)
+    {
+        // Detonation notification
+        Dispatcher.Invoke(() =>
+        {
+            TxtSectorStatus.Text = $"⚠ MINE DETONATION AT [{wx}, {wy}]!";
+        });
     }
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -144,13 +169,24 @@ public partial class MainWindow : Window
 
     private void SkiaCanvas_MouseDown(object sender, MouseButtonEventArgs e)
     {
-        // Middle-mouse drag or Right-mouse drag initiates camera panning
-        if (e.ChangedButton == MouseButton.Middle || e.ChangedButton == MouseButton.Right)
+        Point pos = e.GetPosition(SkiaCanvas);
+        _mouseDownPos = pos;
+        _hasDragged = false;
+
+        // Middle-mouse always starts panning
+        if (e.ChangedButton == MouseButton.Middle)
         {
             _isPanning = true;
-            _lastMousePosition = e.GetPosition(SkiaCanvas);
+            _lastMousePosition = pos;
             SkiaCanvas.CaptureMouse();
             Cursor = Cursors.SizeAll;
+            e.Handled = true;
+        }
+        else if (e.ChangedButton == MouseButton.Right)
+        {
+            _isPanning = true;
+            _lastMousePosition = pos;
+            SkiaCanvas.CaptureMouse();
             e.Handled = true;
         }
     }
@@ -170,6 +206,12 @@ public partial class MainWindow : Window
             double deltaDipX = currentPos.X - _lastMousePosition.X;
             double deltaDipY = currentPos.Y - _lastMousePosition.Y;
 
+            if (Math.Abs(currentPos.X - _mouseDownPos.X) > 4 || Math.Abs(currentPos.Y - _mouseDownPos.Y) > 4)
+            {
+                _hasDragged = true;
+                Cursor = Cursors.SizeAll;
+            }
+
             // Pan in pixel coordinates
             _camera.Pan((float)(deltaDipX * dpiX), (float)(deltaDipY * dpiY));
             _lastMousePosition = currentPos;
@@ -187,11 +229,59 @@ public partial class MainWindow : Window
 
     private void SkiaCanvas_MouseUp(object sender, MouseButtonEventArgs e)
     {
-        if (_isPanning && (e.ChangedButton == MouseButton.Middle || e.ChangedButton == MouseButton.Right))
+        Point currentPos = e.GetPosition(SkiaCanvas);
+        var (dpiX, dpiY) = GetDpiScaling();
+
+        float viewportWidth = (float)(SkiaCanvas.ActualWidth * dpiX);
+        float viewportHeight = (float)(SkiaCanvas.ActualHeight * dpiY);
+
+        SKPoint screenPixel = new SKPoint((float)(currentPos.X * dpiX), (float)(currentPos.Y * dpiY));
+        SKPoint worldPoint = _camera.ScreenToWorld(screenPixel, viewportWidth, viewportHeight);
+        var (cellX, cellY) = Camera.WorldToCell(worldPoint.X, worldPoint.Y);
+
+        if (_isPanning)
         {
             _isPanning = false;
             SkiaCanvas.ReleaseMouseCapture();
             Cursor = Cursors.Arrow;
+
+            // If right button was released without dragging, treat as Toggle Flag!
+            if (e.ChangedButton == MouseButton.Right && !_hasDragged)
+            {
+                _gameSession.ToggleFlag(cellX, cellY);
+                SkiaCanvas.InvalidateVisual();
+                e.Handled = true;
+                return;
+            }
+
+            // If middle button was released without dragging on a revealed number, treat as Chord!
+            if (e.ChangedButton == MouseButton.Middle && !_hasDragged)
+            {
+                _gameSession.ChordCell(cellX, cellY);
+                SkiaCanvas.InvalidateVisual();
+                e.Handled = true;
+                return;
+            }
+        }
+
+        // Left Click: Reveal or Chord
+        if (e.ChangedButton == MouseButton.Left)
+        {
+            if (!_hasDragged)
+            {
+                if (e.ClickCount == 2)
+                {
+                    // Double-click chord
+                    _gameSession.ChordCell(cellX, cellY);
+                }
+                else
+                {
+                    _gameSession.RevealCell(cellX, cellY);
+                }
+
+                SkiaCanvas.InvalidateVisual();
+            }
+
             e.Handled = true;
         }
     }

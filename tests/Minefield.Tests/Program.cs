@@ -113,7 +113,7 @@ class Program
         {
             var chunk = new Chunk { ChunkX = 3, ChunkY = -5 };
             chunk.SetCell(0, 0, CellState.Hidden, CellContent.Empty);
-            chunk.SetCell(5, 7, CellState.Revealed, 3); // 3 adjacent mines
+            chunk.SetCell(5, 7, CellState.Revealed, 3);
             chunk.SetCell(15, 15, CellState.Flagged, CellContent.Mine);
 
             bool check0 = chunk.GetState(0, 0) == CellState.Hidden && chunk.GetContent(0, 0) == CellContent.Empty;
@@ -277,21 +277,16 @@ class Program
             var solver = new DeterministicSolver();
             var chunk = new Chunk { ChunkX = 0, ChunkY = 0 };
 
-            // Set up a classic 1-2-1 pattern along row 1:
-            // Row 0: unknown cells (mines at (0, 0) and (2, 0))
-            // Row 1: clues 1 at (0,1), 2 at (1,1), 1 at (2,1)
             chunk.SetCell(0, 0, CellState.Hidden, CellContent.Mine);
-            chunk.SetCell(1, 0, CellState.Hidden, CellContent.Empty); // safe!
+            chunk.SetCell(1, 0, CellState.Hidden, CellContent.Empty); // safe
             chunk.SetCell(2, 0, CellState.Hidden, CellContent.Mine);
 
             chunk.SetCell(0, 1, CellState.Hidden, 1);
             chunk.SetCell(1, 1, CellState.Hidden, 2);
             chunk.SetCell(2, 1, CellState.Hidden, 1);
 
-            // Starting safe cells: the revealed clues
             var starting = new List<(int, int)> { (0, 1), (1, 1), (2, 1) };
 
-            // Fill remainder of chunk as empty so it doesn't interfere
             for (int ly = 2; ly < Chunk.Dimension; ly++)
             {
                 for (int lx = 0; lx < Chunk.Dimension; lx++)
@@ -315,7 +310,6 @@ class Program
             int mines = chunk.CountMines();
             bool validMineCount = mines >= 35 && mines <= 50;
 
-            // Verify starter zone in origin (center 3x3) has zero mines
             bool starterSafe = true;
             for (int sy = 7; sy <= 9; sy++)
             {
@@ -325,7 +319,6 @@ class Program
                 }
             }
 
-            // Verify solver confirms 100% solvability
             var solver = new DeterministicSolver();
             var starting = new List<(int, int)>();
             for (int sy = 7; sy <= 9; sy++)
@@ -334,7 +327,6 @@ class Program
             }
 
             bool isSolvable = solver.TrySolveChunk(chunk, starting, out int unsolved);
-
             Assert(validMineCount && starterSafe && isSolvable, "BoardGenerator: Deterministic generation with 0% forced guesses");
         }
 
@@ -347,14 +339,12 @@ class Program
             var chunkEast = new Chunk { ChunkX = 1, ChunkY = 0 };
             generator.GenerateChunk(chunkEast, (nx, ny) => nx == 0 && ny == 0 ? chunk0 : null);
 
-            // Verify that edge clues on chunkEast border (lx = 0) correctly reflect mines on chunk0 border (lx = 15)
             bool boundaryAligned = true;
             for (int ly = 0; ly < Chunk.Dimension; ly++)
             {
                 if (chunkEast.IsMine(0, ly)) continue;
 
                 byte clue = chunkEast.GetContent(0, ly);
-                // Count adjacent mines including chunk0 (lx = 15)
                 byte expected = 0;
                 for (int dy = -1; dy <= 1; dy++)
                 {
@@ -382,6 +372,150 @@ class Program
             }
 
             Assert(boundaryAligned, "BoardGenerator: Cross-sector edge boundary mine and clue alignment");
+        }
+
+        // ----------------------------------------------------
+        // GAMEPLAY LOOP & INTERACTION TESTS
+        // ----------------------------------------------------
+        // Test 15: Left-Click Reveal, Mine Detonation, and Right-Click Flag
+        {
+            string tempDb = Path.Combine(Path.GetTempPath(), $"test_gameplay_{Guid.NewGuid():N}.db");
+            try
+            {
+                var chunkManager = new ChunkManager(tempDb, poolPrewarm: 8);
+                var session = new GameSession(chunkManager);
+
+                // Wait for chunk (0,0)
+                var camera = new Camera { X = 0, Y = 0, Zoom = 1.0f };
+                chunkManager.UpdateViewport(camera, 800f, 600f);
+                await Task.Delay(300);
+
+                // Ensure chunk (0, 0) exists
+                chunkManager.TryGetCell(0, 0, out Chunk? chunk0, out _, out _);
+                Assert(chunk0 != null, "GameSession: Setup - Chunk 0 loaded");
+
+                if (chunk0 != null)
+                {
+                    // Manually configure cells for precise test
+                    chunk0.SetCell(0, 0, CellState.Hidden, 2);
+                    chunk0.SetCell(1, 0, CellState.Hidden, CellContent.Mine);
+
+                    // Test Toggle Flag
+                    session.ToggleFlag(0, 0);
+                    bool flagged = chunk0.GetState(0, 0) == CellState.Flagged;
+                    session.ToggleFlag(0, 0);
+                    bool unflagged = chunk0.GetState(0, 0) == CellState.Hidden;
+
+                    // Test Safe Reveal
+                    session.RevealCell(0, 0);
+                    bool revealed = chunk0.GetState(0, 0) == CellState.Revealed;
+
+                    // Test Mine Detonation
+                    bool mineEventFired = false;
+                    session.OnMineDetonated += (mx, my) => { if (mx == 1 && my == 0) mineEventFired = true; };
+                    session.RevealCell(1, 0);
+                    bool detonated = chunk0.GetState(1, 0) == CellState.Detonated;
+
+                    Assert(flagged && unflagged && revealed && detonated && mineEventFired,
+                        "GameSession: Safe cell reveal, flag toggle, and mine detonation mechanics");
+                }
+
+                await chunkManager.DisposeAsync();
+            }
+            finally
+            {
+                if (File.Exists(tempDb))
+                {
+                    try { File.Delete(tempDb); } catch { }
+                }
+            }
+        }
+
+        // Test 16: Infinite Cross-Chunk Flood-Fill
+        {
+            string tempDb = Path.Combine(Path.GetTempPath(), $"test_flood_{Guid.NewGuid():N}.db");
+            try
+            {
+                var chunkManager = new ChunkManager(tempDb, poolPrewarm: 8);
+                var session = new GameSession(chunkManager);
+
+                var camera = new Camera { X = 280, Y = 0, Zoom = 1.0f };
+                chunkManager.UpdateViewport(camera, 1200f, 600f);
+                await Task.Delay(300);
+
+                chunkManager.TryGetCell(15, 5, out Chunk? chunk0, out _, out _);
+                chunkManager.TryGetCell(16, 5, out Chunk? chunk1, out _, out _);
+
+                Assert(chunk0 != null && chunk1 != null, "GameSession: Setup - Chunks 0 and 1 loaded for cross-boundary test");
+
+                if (chunk0 != null && chunk1 != null)
+                {
+                    // Create connected corridor of 0 (Empty) cells across boundary
+                    // Chunk 0, (15, 5) is world (15, 5)
+                    // Chunk 1, (0, 5) is world (16, 5)
+                    chunk0.SetCell(15, 5, CellState.Hidden, CellContent.Empty);
+                    chunk1.SetCell(0, 5, CellState.Hidden, CellContent.Empty);
+                    chunk1.SetCell(1, 5, CellState.Hidden, 1);
+
+                    // Click empty cell in chunk 0
+                    session.RevealCell(15, 5);
+
+                    // Verify both chunk 0 and chunk 1 cells got revealed via cross-chunk flood fill
+                    bool c0Revealed = chunk0.GetState(15, 5) == CellState.Revealed;
+                    bool c1Revealed0 = chunk1.GetState(0, 5) == CellState.Revealed;
+                    bool c1Revealed1 = chunk1.GetState(1, 5) == CellState.Revealed;
+
+                    Assert(c0Revealed && c1Revealed0 && c1Revealed1,
+                        "GameSession: Breadth-first flood-fill seamlessly propagates across chunk boundaries");
+                }
+
+                await chunkManager.DisposeAsync();
+            }
+            finally
+            {
+                if (File.Exists(tempDb))
+                {
+                    try { File.Delete(tempDb); } catch { }
+                }
+            }
+        }
+
+        // Test 17: Chording Mechanic
+        {
+            string tempDb = Path.Combine(Path.GetTempPath(), $"test_chord_{Guid.NewGuid():N}.db");
+            try
+            {
+                var chunkManager = new ChunkManager(tempDb, poolPrewarm: 8);
+                var session = new GameSession(chunkManager);
+
+                var camera = new Camera { X = 0, Y = 0, Zoom = 1.0f };
+                chunkManager.UpdateViewport(camera, 800f, 600f);
+                await Task.Delay(300);
+
+                chunkManager.TryGetCell(5, 5, out Chunk? chunk, out _, out _);
+                if (chunk != null)
+                {
+                    // Clue 1 at (5, 5), Flag at (4, 5), Hidden safe cell at (6, 5)
+                    chunk.SetCell(5, 5, CellState.Revealed, 1);
+                    chunk.SetCell(4, 5, CellState.Flagged, CellContent.Mine);
+                    chunk.SetCell(6, 5, CellState.Hidden, 2);
+
+                    // Chord (5, 5)
+                    session.ChordCell(5, 5);
+
+                    bool chordRevealed = chunk.GetState(6, 5) == CellState.Revealed;
+                    Assert(chordRevealed, "GameSession: Chording sweeps hidden cells when flags match clue");
+                }
+
+                await chunkManager.DisposeAsync();
+            }
+            finally
+            {
+                if (File.Exists(tempDb))
+                {
+                    try { File.Delete(tempDb); } catch { }
+                }
+            }
         }
 
         Console.WriteLine("--------------------------------------------------");

@@ -164,6 +164,13 @@
                         <TextBlock Text="SKIASHARP IMMEDIATE-MODE" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource NeonCyanBrush}" Margin="0,0,16,0" />
                     </StackPanel>
 
+                    <!-- Center Notification / Game Event Text -->
+                    <TextBlock x:Name="TxtSectorStatus" Grid.Column="1"
+                               Text="STATUS: EXPLORATION ACTIVE"
+                               FontFamily="Consolas" FontSize="10" FontWeight="Bold"
+                               Foreground="{StaticResource NeonCyanBrush}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+
                     <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Center">
                         <TextBlock Text="RENDER: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
                         <TextBlock x:Name="TxtFps" Text="60.0 FPS" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonEmeraldBrush}" Margin="0,0,16,0" />

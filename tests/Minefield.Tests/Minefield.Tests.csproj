@@ -15,6 +15,7 @@
     <Compile Include="..\..\Engine\DeterministicSolver.cs" Link="Engine\DeterministicSolver.cs" />
     <Compile Include="..\..\Engine\BoardGenerator.cs" Link="Engine\BoardGenerator.cs" />
     <Compile Include="..\..\Engine\ChunkManager.cs" Link="Engine\ChunkManager.cs" />
+    <Compile Include="..\..\Engine\GameSession.cs" Link="Engine\GameSession.cs" />
     <Compile Include="..\..\Data\ChunkEntity.cs" Link="Data\ChunkEntity.cs" />
     <Compile Include="..\..\Data\PlayerProfileEntity.cs" Link="Data\PlayerProfileEntity.cs" />
     <Compile Include="..\..\Data\MinefieldDbContext.cs" Link="Data\MinefieldDbContext.cs" />
