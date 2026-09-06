@@ -1,0 +1,88 @@
+<Application x:Class="Minefield.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <!-- Futuristic Glassmorphism Dark Theme Palette -->
+        <Color x:Key="BgDarkColor">#070B14</Color>
+        <Color x:Key="BgGlassColor">#0D1526D9</Color>
+        <Color x:Key="BgGlassLighterColor">#142036BF</Color>
+        <Color x:Key="BorderGlassColor">#00E5FF33</Color>
+        <Color x:Key="BorderActiveColor">#00E5FF88</Color>
+        <Color x:Key="NeonCyanColor">#00E5FF</Color>
+        <Color x:Key="NeonPurpleColor">#B388FF</Color>
+        <Color x:Key="NeonEmeraldColor">#00E676</Color>
+        <Color x:Key="NeonCrimsonColor">#FF1744</Color>
+        <Color x:Key="TextPrimaryColor">#F1F5F9</Color>
+        <Color x:Key="TextMutedColor">#94A3B8</Color>
+
+        <SolidColorBrush x:Key="BgDarkBrush" Color="{StaticResource BgDarkColor}" />
+        <SolidColorBrush x:Key="BgGlassBrush" Color="{StaticResource BgGlassColor}" />
+        <SolidColorBrush x:Key="BgGlassLighterBrush" Color="{StaticResource BgGlassLighterColor}" />
+        <SolidColorBrush x:Key="BorderGlassBrush" Color="{StaticResource BorderGlassColor}" />
+        <SolidColorBrush x:Key="BorderActiveBrush" Color="{StaticResource BorderActiveColor}" />
+        <SolidColorBrush x:Key="NeonCyanBrush" Color="{StaticResource NeonCyanColor}" />
+        <SolidColorBrush x:Key="NeonPurpleBrush" Color="{StaticResource NeonPurpleColor}" />
+        <SolidColorBrush x:Key="NeonEmeraldBrush" Color="{StaticResource NeonEmeraldColor}" />
+        <SolidColorBrush x:Key="NeonCrimsonBrush" Color="{StaticResource NeonCrimsonColor}" />
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
+        <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMutedColor}" />
+
+        <!-- Glow Effect Filters -->
+        <DropShadowEffect x:Key="CyanGlow" Color="{StaticResource NeonCyanColor}" BlurRadius="14" ShadowDepth="0" Opacity="0.75" />
+        <DropShadowEffect x:Key="SubtleGlow" Color="{StaticResource NeonCyanColor}" BlurRadius="8" ShadowDepth="0" Opacity="0.4" />
+        <DropShadowEffect x:Key="PanelShadow" Color="#000000" BlurRadius="24" ShadowDepth="8" Opacity="0.65" />
+
+        <!-- Futuristic Window Button Style -->
+        <Style x:Key="WindowActionButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="FontFamily" Value="Segoe UI, Segoe UI Symbol, Arial" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="btnBorder" Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="btnBorder" Property="Background" Value="#1AFFFFFF" />
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="btnBorder" Property="Background" Value="#33FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Close Window Button Style -->
+        <Style x:Key="WindowCloseButton" TargetType="Button" BasedOn="{StaticResource WindowActionButton}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="btnBorder" Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="btnBorder" Property="Background" Value="#CCFF1744" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="btnBorder" Property="Background" Value="#FFFF1744" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Application.Resources>
+</Application>

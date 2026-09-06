@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- Disable broken global optional workload resolver on host machine -->
+    <MSBuildEnableWorkloadResolver>false</MSBuildEnableWorkloadResolver>
+  </PropertyGroup>
+</Project>

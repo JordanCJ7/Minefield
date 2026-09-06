@@ -1,0 +1,17 @@
+## Visual Studio / .NET Build Artifacts
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## SQLite Database
+*.db
+*.db-shm
+*.db-wal
+
+## Logs & Temp
+*.log
+.vs/
+.vscode/
