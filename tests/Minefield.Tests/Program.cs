@@ -173,8 +173,35 @@ class Program
                 }
             }
 
-            bool locked = chunk.CheckAndLock();
-            Assert(locked && chunk.IsLocked, "Chunk: Automated sector lock triggers when all safe cells revealed");
+            // With mines unflagged, sector must NOT lock
+            bool lockedWithoutFlags = chunk.CheckAndLock();
+
+            // Add false flag to a safe cell - must NOT lock
+            chunk.SetCell(10, 0, CellState.Flagged, 1);
+            bool lockedWithFalseFlag = chunk.CheckAndLock();
+            chunk.SetCell(10, 0, CellState.Revealed, 1); // restore safe cell to revealed
+
+            // Flag all 10 mines correctly
+            for (int i = 0; i < 10; i++)
+            {
+                chunk.SetCell(i, 0, CellState.Flagged, CellContent.Mine);
+            }
+
+            bool lockedWithAllMinesFlagged = chunk.CheckAndLock();
+
+            // Verify all tiles are now revealed upon completion
+            bool allTilesRevealed = true;
+            for (int i = 0; i < Chunk.TotalCells; i++)
+            {
+                if (chunk.GetState(i % Chunk.Dimension, i / Chunk.Dimension) != CellState.Revealed)
+                {
+                    allTilesRevealed = false;
+                    break;
+                }
+            }
+
+            Assert(!lockedWithoutFlags && !lockedWithFalseFlag && lockedWithAllMinesFlagged && chunk.IsLocked && allTilesRevealed,
+                "Chunk: Sector lock requires all mines correctly flagged and reveals all tiles upon completion");
         }
 
         // Test 9: ChunkPool recycling

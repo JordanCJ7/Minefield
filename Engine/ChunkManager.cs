@@ -206,28 +206,25 @@ public class ChunkManager : IAsyncDisposable
                 _boardGenerator.GenerateChunk(chunk);
                 chunk.IsModified = true;
 
-                // Update database in background
-                Task.Run(async () =>
+                // Update database
+                await _dbLock.WaitAsync().ConfigureAwait(false);
+                try
                 {
-                    await _dbLock.WaitAsync().ConfigureAwait(false);
-                    try
+                    using var db = new MinefieldDbContext(_dbPath);
+                    var existing = await db.Chunks.FindAsync(cx, cy).ConfigureAwait(false);
+                    if (existing != null)
                     {
-                        using var db = new MinefieldDbContext(_dbPath);
-                        var existing = await db.Chunks.FindAsync(cx, cy).ConfigureAwait(false);
-                        if (existing != null)
-                        {
-                            existing.Data = chunk.Serialize();
-                            existing.IsLocked = chunk.IsLocked;
-                            existing.LastModified = DateTime.UtcNow;
-                            await db.SaveChangesAsync().ConfigureAwait(false);
-                        }
+                        existing.Data = chunk.Serialize();
+                        existing.IsLocked = chunk.IsLocked;
+                        existing.LastModified = DateTime.UtcNow;
+                        await db.SaveChangesAsync().ConfigureAwait(false);
                     }
-                    catch { }
-                    finally
-                    {
-                        _dbLock.Release();
-                    }
-                });
+                }
+                catch { }
+                finally
+                {
+                    _dbLock.Release();
+                }
             }
         }
         else

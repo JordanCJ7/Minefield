@@ -30,6 +30,8 @@ public class InfiniteGridRenderer : IDisposable
     private readonly SKPaint _lockedSectorOverlayPaint;
     private readonly SKPaint _lockedSectorBorderPaint;
     private readonly SKPaint _lockedBadgePaint;
+    private readonly SKPaint _tileMineClearedPaint;
+    private readonly SKPaint _tileMineClearedBgPaint;
 
     // Pre-cached number paints for 1..8 with distinctive neon sci-fi colors
     private readonly SKPaint[] _numberPaints = new SKPaint[9];
@@ -174,6 +176,22 @@ public class InfiniteGridRenderer : IDisposable
             Typeface = SKTypeface.FromFamilyName("Consolas", SKFontStyle.Bold)
         };
 
+        _tileMineClearedPaint = new SKPaint
+        {
+            Color = new SKColor(0, 230, 118), // Neon Emerald Green (#00E676)
+            IsAntialias = true,
+            Style = SKPaintStyle.Fill,
+            TextSize = 18.0f,
+            TextAlign = SKTextAlign.Center,
+            Typeface = SKTypeface.FromFamilyName("Segoe UI Symbol", SKFontStyle.Bold)
+        };
+
+        _tileMineClearedBgPaint = new SKPaint
+        {
+            Color = new SKColor(0, 230, 118, 45), // Translucent emerald glow background
+            Style = SKPaintStyle.Fill
+        };
+
         // Initialize neon colors for numbers 1..8
         SKColor[] numberColors =
         {
@@ -266,37 +284,46 @@ public class InfiniteGridRenderer : IDisposable
                                     cellTop + Camera.CellSize - tileInset
                                 );
 
-                                switch (state)
+                                if (chunk.IsLocked && content == CellContent.Mine)
                                 {
-                                    case CellState.Hidden:
-                                        canvas.DrawRoundRect(cellRect, 3.0f, 3.0f, _tileHiddenPaint);
-                                        canvas.DrawRoundRect(cellRect, 3.0f, 3.0f, _tileHiddenBorderPaint);
-                                        break;
+                                    // Completed section: all mines cleared and colored green
+                                    canvas.DrawRect(cellRect, _tileMineClearedBgPaint);
+                                    canvas.DrawText("✹", cellLeft + Camera.CellSize / 2.0f, cellTop + Camera.CellSize / 2.0f + textOffsetY, _tileMineClearedPaint);
+                                }
+                                else
+                                {
+                                    switch (state)
+                                    {
+                                        case CellState.Hidden:
+                                            canvas.DrawRoundRect(cellRect, 3.0f, 3.0f, _tileHiddenPaint);
+                                            canvas.DrawRoundRect(cellRect, 3.0f, 3.0f, _tileHiddenBorderPaint);
+                                            break;
 
-                                    case CellState.Flagged:
-                                        canvas.DrawRoundRect(cellRect, 3.0f, 3.0f, _tileHiddenPaint);
-                                        canvas.DrawRoundRect(cellRect, 3.0f, 3.0f, _tileHiddenBorderPaint);
-                                        canvas.DrawText("▲", cellLeft + Camera.CellSize / 2.0f, cellTop + Camera.CellSize / 2.0f + textOffsetY, _tileFlagPaint);
-                                        break;
+                                        case CellState.Flagged:
+                                            canvas.DrawRoundRect(cellRect, 3.0f, 3.0f, _tileHiddenPaint);
+                                            canvas.DrawRoundRect(cellRect, 3.0f, 3.0f, _tileHiddenBorderPaint);
+                                            canvas.DrawText("▲", cellLeft + Camera.CellSize / 2.0f, cellTop + Camera.CellSize / 2.0f + textOffsetY, _tileFlagPaint);
+                                            break;
 
-                                    case CellState.Detonated:
-                                        canvas.DrawRect(cellRect, _tileDetonatedBgPaint);
-                                        canvas.DrawText("✹", cellLeft + Camera.CellSize / 2.0f, cellTop + Camera.CellSize / 2.0f + textOffsetY, _tileMinePaint);
-                                        break;
-
-                                    case CellState.Revealed:
-                                        canvas.DrawRect(cellRect, _tileRevealedPaint);
-
-                                        if (content == CellContent.Mine)
-                                        {
+                                        case CellState.Detonated:
+                                            canvas.DrawRect(cellRect, _tileDetonatedBgPaint);
                                             canvas.DrawText("✹", cellLeft + Camera.CellSize / 2.0f, cellTop + Camera.CellSize / 2.0f + textOffsetY, _tileMinePaint);
-                                        }
-                                        else if (content >= 1 && content <= 8)
-                                        {
-                                            string numStr = content.ToString();
-                                            canvas.DrawText(numStr, cellLeft + Camera.CellSize / 2.0f, cellTop + Camera.CellSize / 2.0f + textOffsetY, _numberPaints[content]);
-                                        }
-                                        break;
+                                            break;
+
+                                        case CellState.Revealed:
+                                            canvas.DrawRect(cellRect, _tileRevealedPaint);
+
+                                            if (content == CellContent.Mine)
+                                            {
+                                                canvas.DrawText("✹", cellLeft + Camera.CellSize / 2.0f, cellTop + Camera.CellSize / 2.0f + textOffsetY, _tileMinePaint);
+                                            }
+                                            else if (content >= 1 && content <= 8)
+                                            {
+                                                string numStr = content.ToString();
+                                                canvas.DrawText(numStr, cellLeft + Camera.CellSize / 2.0f, cellTop + Camera.CellSize / 2.0f + textOffsetY, _numberPaints[content]);
+                                            }
+                                            break;
+                                    }
                                 }
                             }
                         }
@@ -446,6 +473,8 @@ public class InfiniteGridRenderer : IDisposable
         _axisPaint.Color = theme.SkiaAxis;
         _chunkLabelPaint.Color = theme.SkiaAccent;
         _hoverCellPaint.Color = new SKColor(theme.SkiaAccent.Red, theme.SkiaAccent.Green, theme.SkiaAccent.Blue, 45);
+        _tileMineClearedPaint.Color = theme.SkiaEmerald;
+        _tileMineClearedBgPaint.Color = new SKColor(theme.SkiaEmerald.Red, theme.SkiaEmerald.Green, theme.SkiaEmerald.Blue, 45);
 
         for (int i = 1; i <= 8; i++)
         {
@@ -477,6 +506,8 @@ public class InfiniteGridRenderer : IDisposable
         _lockedSectorOverlayPaint.Dispose();
         _lockedSectorBorderPaint.Dispose();
         _lockedBadgePaint.Dispose();
+        _tileMineClearedPaint.Dispose();
+        _tileMineClearedBgPaint.Dispose();
 
         for (int i = 1; i <= 8; i++)
         {

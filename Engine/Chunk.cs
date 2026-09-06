@@ -138,19 +138,60 @@ public class Chunk
         return count;
     }
 
+    public int CountCorrectlyFlaggedMines()
+    {
+        int count = 0;
+        for (int i = 0; i < TotalCells; i++)
+        {
+            byte state = (byte)(RawTiles[i] & 0x0F);
+            byte content = (byte)((RawTiles[i] >> 4) & 0x0F);
+            if (state == (byte)CellState.Flagged && content == CellContent.Mine)
+                count++;
+        }
+        return count;
+    }
+
+    public int CountFalseFlags()
+    {
+        int count = 0;
+        for (int i = 0; i < TotalCells; i++)
+        {
+            byte state = (byte)(RawTiles[i] & 0x0F);
+            byte content = (byte)((RawTiles[i] >> 4) & 0x0F);
+            if (state == (byte)CellState.Flagged && content != CellContent.Mine)
+                count++;
+        }
+        return count;
+    }
+
     /// <summary>
-    /// Evaluates whether all safe cells in the sector have been revealed.
-    /// If so, locks the chunk and returns true.
+    /// Evaluates whether the sector has been completely solved:
+    /// 1. All safe cells must be revealed.
+    /// 2. All mines in this sector must be flagged correctly.
+    /// 3. No false flags on safe cells.
+    /// Only after flagging all mines correctly does the section complete.
+    /// Upon completion, all tiles in the section are revealed, and mines are rendered green to state mines cleared.
     /// </summary>
     public bool CheckAndLock()
     {
         if (IsLocked) return false;
 
-        int totalSafe = TotalCells - CountMines();
+        int totalMines = CountMines();
+        int totalSafe = TotalCells - totalMines;
         int safeRevealed = CountSafeRevealed();
+        int flaggedMines = CountCorrectlyFlaggedMines();
+        int falseFlags = CountFalseFlags();
 
-        if (safeRevealed >= totalSafe && totalSafe > 0)
+        // Complete ONLY when all safe cells are revealed AND all mines are correctly flagged without false flags
+        if (totalSafe > 0 && safeRevealed == totalSafe && flaggedMines == totalMines && falseFlags == 0)
         {
+            // Reveal all tiles in the section upon completion
+            for (int i = 0; i < TotalCells; i++)
+            {
+                byte content = (byte)((RawTiles[i] >> 4) & 0x0F);
+                RawTiles[i] = (byte)((content << 4) | (byte)CellState.Revealed);
+            }
+
             IsLocked = true;
             IsModified = true;
             return true;
