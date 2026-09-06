@@ -327,7 +327,7 @@ class Program
                 for (int sx = 7; sx <= 9; sx++) starting.Add((sx, sy));
             }
 
-            bool isSolvable = solver.TrySolveChunk(chunk, starting, out int unsolved);
+            bool isSolvable = solver.TrySolveChunk(chunk, starting, out int unsolved, generator.IsMineAt);
             Assert(validMineCount && starterSafe && isSolvable, "BoardGenerator: Deterministic generation with 0% forced guesses");
         }
 
@@ -338,7 +338,7 @@ class Program
             generator.GenerateChunk(chunk0);
 
             var chunkEast = new Chunk { ChunkX = 1, ChunkY = 0 };
-            generator.GenerateChunk(chunkEast, (nx, ny) => nx == 0 && ny == 0 ? chunk0 : null);
+            generator.GenerateChunk(chunkEast);
 
             bool boundaryAligned = true;
             for (int ly = 0; ly < Chunk.Dimension; ly++)
@@ -372,7 +372,53 @@ class Program
                 }
             }
 
-            Assert(boundaryAligned, "BoardGenerator: Cross-sector edge boundary mine and clue alignment");
+            Assert(boundaryAligned, "BoardGenerator: Cross-sector vertical edge boundary mine and clue alignment");
+
+            // Verify horizontal boundary (e.g. Sector [0, -1] and Sector [0, 0]) - exactly where user bug occurred
+            var chunkNorth = new Chunk { ChunkX = 0, ChunkY = -1 };
+            generator.GenerateChunk(chunkNorth);
+
+            bool horizontalAligned = true;
+            for (int lx = 0; lx < Chunk.Dimension; lx++)
+            {
+                // Test row 15 of chunkNorth (y = -1 in world coords)
+                if (!chunkNorth.IsMine(lx, 15))
+                {
+                    byte clue = chunkNorth.GetContent(lx, 15);
+                    byte expected = 0;
+                    for (int dy = -1; dy <= 1; dy++)
+                    {
+                        for (int dx = -1; dx <= 1; dx++)
+                        {
+                            if (dx == 0 && dy == 0) continue;
+                            int wx = lx + dx;
+                            int wy = -1 + dy;
+                            if (generator.IsMineAt(wx, wy)) expected++;
+                        }
+                    }
+                    if (clue != expected) { horizontalAligned = false; break; }
+                }
+
+                // Test row 0 of chunk0 (y = 0 in world coords)
+                if (!chunk0.IsMine(lx, 0))
+                {
+                    byte clue = chunk0.GetContent(lx, 0);
+                    byte expected = 0;
+                    for (int dy = -1; dy <= 1; dy++)
+                    {
+                        for (int dx = -1; dx <= 1; dx++)
+                        {
+                            if (dx == 0 && dy == 0) continue;
+                            int wx = lx + dx;
+                            int wy = 0 + dy;
+                            if (generator.IsMineAt(wx, wy)) expected++;
+                        }
+                    }
+                    if (clue != expected) { horizontalAligned = false; break; }
+                }
+            }
+
+            Assert(horizontalAligned, "BoardGenerator: Cross-sector horizontal boundary (Y=-1 / Y=0) clue exactness");
         }
 
         // ----------------------------------------------------
@@ -390,9 +436,15 @@ class Program
                 // Wait for chunk (0,0)
                 var camera = new Camera { X = 0, Y = 0, Zoom = 1.0f };
                 chunkManager.UpdateViewport(camera, 800f, 600f);
-                await Task.Delay(300);
 
-                chunkManager.TryGetCell(0, 0, out Chunk? chunk0, out _, out _);
+                Chunk? chunk0 = null;
+                for (int attempt = 0; attempt < 30; attempt++)
+                {
+                    chunkManager.TryGetCell(0, 0, out chunk0, out _, out _);
+                    if (chunk0 != null) break;
+                    await Task.Delay(50);
+                }
+
                 Assert(chunk0 != null, "GameSession: Setup - Chunk 0 loaded");
 
                 if (chunk0 != null)
@@ -439,10 +491,16 @@ class Program
 
                 var camera = new Camera { X = 280, Y = 0, Zoom = 1.0f };
                 chunkManager.UpdateViewport(camera, 1200f, 600f);
-                await Task.Delay(300);
 
-                chunkManager.TryGetCell(15, 5, out Chunk? chunk0, out _, out _);
-                chunkManager.TryGetCell(16, 5, out Chunk? chunk1, out _, out _);
+                Chunk? chunk0 = null;
+                Chunk? chunk1 = null;
+                for (int attempt = 0; attempt < 30; attempt++)
+                {
+                    chunkManager.TryGetCell(15, 5, out chunk0, out _, out _);
+                    chunkManager.TryGetCell(16, 5, out chunk1, out _, out _);
+                    if (chunk0 != null && chunk1 != null) break;
+                    await Task.Delay(50);
+                }
 
                 Assert(chunk0 != null && chunk1 != null, "GameSession: Setup - Chunks 0 and 1 loaded for cross-boundary test");
 

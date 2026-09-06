@@ -9,7 +9,8 @@ namespace Minefield.Engine;
 /// Tier 1: Direct Basic Flags & Direct Clears
 /// Tier 2: Subset Deduction (1-2 and Overlap Logic)
 /// Tier 3: Proof by Contradiction / Backtracking Deduction
-/// Guarantees 100% deterministic solvability with zero 50/50 guesses.
+/// Guarantees 100% deterministic solvability with zero 50/50 guesses,
+/// accounting for cross-sector boundary mines.
 /// </summary>
 public class DeterministicSolver
 {
@@ -25,10 +26,11 @@ public class DeterministicSolver
     /// without requiring a guess.
     /// </summary>
     /// <param name="chunk">The chunk containing mines and clues.</param>
-    /// <param name="startingSafeCells">Known starting safe cells (e.g., initial open zone or edge entry points).</param>
+    /// <param name="startingSafeCells">Known starting safe cells.</param>
     /// <param name="unsolvedCount">Output: number of cells that could not be logically deduced.</param>
+    /// <param name="isWorldMine">Optional ground truth predicate to query external boundary mines.</param>
     /// <returns>True if 100% solved with zero ambiguity; false if a forced guess was encountered.</returns>
-    public bool TrySolveChunk(Chunk chunk, IEnumerable<(int X, int Y)> startingSafeCells, out int unsolvedCount)
+    public bool TrySolveChunk(Chunk chunk, IEnumerable<(int X, int Y)> startingSafeCells, out int unsolvedCount, Func<int, int, bool>? isWorldMine = null)
     {
         const int W = Chunk.Dimension;
         const int H = Chunk.Dimension;
@@ -100,18 +102,7 @@ public class DeterministicSolver
                 foreach (var (cx, cy) in cluesSnapshot)
                 {
                     byte clue = chunk.GetContent(cx, cy);
-                    var neighbors = GetNeighbors(cx, cy);
-
-                    int flaggedNeighbors = 0;
-                    var unknownNeighbors = new List<(int X, int Y)>();
-
-                    foreach (var (nx, ny) in neighbors)
-                    {
-                        if (states[nx, ny] == SolverCellState.FlaggedMine)
-                            flaggedNeighbors++;
-                        else if (states[nx, ny] == SolverCellState.Unknown)
-                            unknownNeighbors.Add((nx, ny));
-                    }
+                    GetNeighborInfo(chunk, cx, cy, states, isWorldMine, out int flaggedNeighbors, out var unknownNeighbors);
 
                     if (unknownNeighbors.Count == 0)
                     {
@@ -157,34 +148,22 @@ public class DeterministicSolver
             {
                 var (ax, ay) = activeClues[i];
                 byte clueA = chunk.GetContent(ax, ay);
-                int flaggedA = 0;
-                var unknownsA = new HashSet<(int X, int Y)>();
+                GetNeighborInfo(chunk, ax, ay, states, isWorldMine, out int flaggedA, out var unknownsListA);
 
-                foreach (var (nx, ny) in GetNeighbors(ax, ay))
-                {
-                    if (states[nx, ny] == SolverCellState.FlaggedMine) flaggedA++;
-                    else if (states[nx, ny] == SolverCellState.Unknown) unknownsA.Add((nx, ny));
-                }
-
-                if (unknownsA.Count == 0) continue;
+                if (unknownsListA.Count == 0) continue;
                 int remainingA = clueA - flaggedA;
+                var unknownsA = new HashSet<(int X, int Y)>(unknownsListA);
 
                 for (int j = 0; j < activeClues.Count; j++)
                 {
                     if (i == j) continue;
                     var (bx, by) = activeClues[j];
                     byte clueB = chunk.GetContent(bx, by);
-                    int flaggedB = 0;
-                    var unknownsB = new HashSet<(int X, int Y)>();
+                    GetNeighborInfo(chunk, bx, by, states, isWorldMine, out int flaggedB, out var unknownsListB);
 
-                    foreach (var (nx, ny) in GetNeighbors(bx, by))
-                    {
-                        if (states[nx, ny] == SolverCellState.FlaggedMine) flaggedB++;
-                        else if (states[nx, ny] == SolverCellState.Unknown) unknownsB.Add((nx, ny));
-                    }
-
-                    if (unknownsB.Count == 0) continue;
+                    if (unknownsListB.Count == 0) continue;
                     int remainingB = clueB - flaggedB;
+                    var unknownsB = new HashSet<(int X, int Y)>(unknownsListB);
 
                     // Check if unknownsA is a strict subset of unknownsB
                     if (unknownsA.Count < unknownsB.Count && unknownsA.IsSubsetOf(unknownsB))
@@ -235,7 +214,7 @@ public class DeterministicSolver
             foreach (var (fx, fy) in frontier)
             {
                 // Hypothesis 1: Assume (fx, fy) is a Mine
-                if (LeadsToContradiction(chunk, states, cluesToProcess, fx, fy, SolverCellState.FlaggedMine))
+                if (LeadsToContradiction(chunk, states, cluesToProcess, fx, fy, SolverCellState.FlaggedMine, isWorldMine))
                 {
                     // Must be Safe!
                     states[fx, fy] = SolverCellState.SafeRevealed;
@@ -246,7 +225,7 @@ public class DeterministicSolver
                 }
 
                 // Hypothesis 2: Assume (fx, fy) is Safe
-                if (LeadsToContradiction(chunk, states, cluesToProcess, fx, fy, SolverCellState.SafeRevealed))
+                if (LeadsToContradiction(chunk, states, cluesToProcess, fx, fy, SolverCellState.SafeRevealed, isWorldMine))
                 {
                     // Must be a Mine!
                     states[fx, fy] = SolverCellState.FlaggedMine;
@@ -261,14 +240,51 @@ public class DeterministicSolver
         return unsolvedCount == 0;
     }
 
-    private bool LeadsToContradiction(Chunk chunk, SolverCellState[,] currentStates, HashSet<(int X, int Y)> clues, int testX, int testY, SolverCellState testState)
+    private static void GetNeighborInfo(
+        Chunk chunk,
+        int cx,
+        int cy,
+        SolverCellState[,] states,
+        Func<int, int, bool>? isWorldMine,
+        out int flagged,
+        out List<(int X, int Y)> unknowns)
+    {
+        flagged = 0;
+        unknowns = new List<(int X, int Y)>(8);
+
+        for (int dy = -1; dy <= 1; dy++)
+        {
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                if (dx == 0 && dy == 0) continue;
+                int nx = cx + dx;
+                int ny = cy + dy;
+
+                if (nx >= 0 && nx < Chunk.Dimension && ny >= 0 && ny < Chunk.Dimension)
+                {
+                    if (states[nx, ny] == SolverCellState.FlaggedMine)
+                        flagged++;
+                    else if (states[nx, ny] == SolverCellState.Unknown)
+                        unknowns.Add((nx, ny));
+                }
+                else if (isWorldMine != null)
+                {
+                    int wx = chunk.ChunkX * Chunk.Dimension + nx;
+                    int wy = chunk.ChunkY * Chunk.Dimension + ny;
+                    if (isWorldMine(wx, wy))
+                        flagged++;
+                }
+            }
+        }
+    }
+
+    private bool LeadsToContradiction(Chunk chunk, SolverCellState[,] currentStates, HashSet<(int X, int Y)> clues, int testX, int testY, SolverCellState testState, Func<int, int, bool>? isWorldMine)
     {
         var simStates = (SolverCellState[,])currentStates.Clone();
         simStates[testX, testY] = testState;
 
         var simClues = new Queue<(int X, int Y)>(clues);
 
-        // Run limited Tier 1 propagation on simulation
         int steps = 0;
         while (simClues.Count > 0 && steps < 64)
         {
@@ -276,14 +292,7 @@ public class DeterministicSolver
             var (cx, cy) = simClues.Dequeue();
             byte clue = chunk.GetContent(cx, cy);
 
-            int flagged = 0;
-            var unknowns = new List<(int X, int Y)>();
-
-            foreach (var (nx, ny) in GetNeighbors(cx, cy))
-            {
-                if (simStates[nx, ny] == SolverCellState.FlaggedMine) flagged++;
-                else if (simStates[nx, ny] == SolverCellState.Unknown) unknowns.Add((nx, ny));
-            }
+            GetNeighborInfo(chunk, cx, cy, simStates, isWorldMine, out int flagged, out var unknowns);
 
             // Contradiction 1: Too many mines
             if (flagged > clue) return true;
