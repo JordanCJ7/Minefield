@@ -79,59 +79,63 @@
                 </Grid>
             </Border>
 
-            <!-- ================= VIEWPORT AREA (Reserved for SkiaSharp Canvas & HUD) ================= -->
-            <Grid Grid.Row="1" x:Name="ViewportGrid" Background="#060910">
-                <Grid.Resources>
-                    <!-- Ambient Background Glow -->
-                    <RadialGradientBrush x:Key="AmbientGlow" Center="0.5,0.5" RadiusX="0.6" RadiusY="0.6">
-                        <GradientStop Color="#1400E5FF" Offset="0" />
-                        <GradientStop Color="#081024" Offset="0.6" />
-                        <GradientStop Color="#050810" Offset="1" />
-                    </RadialGradientBrush>
-                </Grid.Resources>
+            <!-- ================= VIEWPORT AREA (SkiaSharp Canvas & HUD Overlay) ================= -->
+            <Grid Grid.Row="1" x:Name="ViewportGrid" Background="#060910" ClipToBounds="True">
+                <!-- SkiaSharp Immediate-Mode Canvas -->
+                <skia:SKElement x:Name="SkiaCanvas"
+                                Focusable="True"
+                                PaintSurface="SkiaCanvas_PaintSurface"
+                                MouseDown="SkiaCanvas_MouseDown"
+                                MouseMove="SkiaCanvas_MouseMove"
+                                MouseUp="SkiaCanvas_MouseUp"
+                                MouseWheel="SkiaCanvas_MouseWheel"
+                                MouseLeave="SkiaCanvas_MouseLeave" />
 
-                <Rectangle Fill="{StaticResource AmbientGlow}" IsHitTestVisible="False" />
-
-                <!-- Phase 1 Welcome & Verification Panel -->
-                <Border HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Background="{StaticResource BgGlassBrush}"
-                        BorderBrush="{StaticResource BorderActiveBrush}"
+                <!-- In-Viewport Telemetry HUD Glass Card (Top Left) -->
+                <Border HorizontalAlignment="Left" VerticalAlignment="Top"
+                        Margin="16,14"
+                        Background="{StaticResource BgGlassColor}"
+                        BorderBrush="{StaticResource BorderGlassBrush}"
                         BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="28,24"
-                        MaxWidth="600"
-                        Effect="{StaticResource CyanGlow}">
-                    <StackPanel HorizontalAlignment="Center">
-                        <TextBlock Text="MINEFIELD PROTOCOL INITIALIZED"
-                                   FontFamily="Consolas, Segoe UI"
-                                   FontWeight="Bold"
-                                   FontSize="18"
-                                   Foreground="{StaticResource NeonCyanBrush}"
-                                   HorizontalAlignment="Center"
-                                   Margin="0,0,0,10" />
+                        CornerRadius="6"
+                        Padding="12,8"
+                        IsHitTestVisible="False">
+                    <StackPanel Orientation="Vertical">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                            <TextBlock Text="COORDINATES: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                            <TextBlock x:Name="TxtWorldPos" Text="X: 0.0  Y: 0.0" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                            <TextBlock Text="GRID CELL:   " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                            <TextBlock x:Name="TxtCellPos" Text="[0, 0]" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonEmeraldBrush}" />
+                            <TextBlock Text="  SECTOR: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="6,0,0,0" />
+                            <TextBlock x:Name="TxtChunkPos" Text="[0, 0]" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonPurpleBrush}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="CAMERA ZOOM: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                            <TextBlock x:Name="TxtZoom" Text="100%" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
 
-                        <TextBlock Text="Phase 1: Project Scaffolding &amp; Native Architecture Setup Complete"
-                                   FontFamily="Segoe UI"
-                                   FontSize="13"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                   HorizontalAlignment="Center"
-                                   Margin="0,0,0,16" />
-
-                        <Border Background="#101C30" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="4" Padding="14,10" Margin="0,0,0,14">
-                            <StackPanel>
-                                <TextBlock Text="✓ .NET 9.0 WindowsDesktop Runtime" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource NeonEmeraldBrush}" Margin="0,2" />
-                                <TextBlock Text="✓ Standalone Single-File Configuration (Zero-Dependency)" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource NeonEmeraldBrush}" Margin="0,2" />
-                                <TextBlock Text="✓ Borderless Glassmorphism WPF Window Shell" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource NeonEmeraldBrush}" Margin="0,2" />
-                                <TextBlock Text="✓ SkiaSharp.Views.WPF (v2.88.9) Integrated" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource NeonEmeraldBrush}" Margin="0,2" />
-                                <TextBlock Text="✓ Microsoft.EntityFrameworkCore.Sqlite (v9.0.2) Integrated" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource NeonEmeraldBrush}" Margin="0,2" />
-                            </StackPanel>
-                        </Border>
-
-                        <TextBlock Text="Ready for Phase 2: SkiaSharp Rendering &amp; Infinite Camera System"
-                                   FontFamily="Consolas, Segoe UI"
-                                   FontSize="11"
-                                   Foreground="{StaticResource TextMutedBrush}"
-                                   HorizontalAlignment="Center" />
+                <!-- Navigation Controls Help Card (Top Right) -->
+                <Border HorizontalAlignment="Right" VerticalAlignment="Top"
+                        Margin="16,14"
+                        Background="{StaticResource BgGlassColor}"
+                        BorderBrush="{StaticResource BorderGlassBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Padding="10,6"
+                        IsHitTestVisible="True">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="PAN: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                        <TextBlock Text="Middle / Right Drag  " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" />
+                        <TextBlock Text="ZOOM: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                        <TextBlock Text="Wheel  " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" />
+                        <Button x:Name="BtnResetCamera" Content="RESET (0,0)" FontFamily="Consolas" FontSize="9"
+                                Background="#1A00E5FF" Foreground="{StaticResource NeonCyanBrush}"
+                                BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1"
+                                Padding="6,2" Cursor="Hand" Click="BtnResetCamera_Click" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -152,11 +156,13 @@
                     <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center">
                         <TextBlock Text="CORE: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
                         <TextBlock Text="ACTIVE" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonEmeraldBrush}" Margin="0,0,16,0" />
-                        <TextBlock Text="SECTOR CHUNKS: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
-                        <TextBlock Text="16x16 DETERMINISTIC" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource NeonCyanBrush}" Margin="0,0,16,0" />
+                        <TextBlock Text="ENGINE: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                        <TextBlock Text="SKIASHARP IMMEDIATE-MODE" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource NeonCyanBrush}" Margin="0,0,16,0" />
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Center">
+                        <TextBlock Text="RENDER: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                        <TextBlock x:Name="TxtFps" Text="60.0 FPS" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonEmeraldBrush}" Margin="0,0,16,0" />
                         <TextBlock Text="TARGET: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
                         <TextBlock Text="x64 STANDALONE" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource NeonPurpleBrush}" />
                     </StackPanel>
