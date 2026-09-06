@@ -8,7 +8,7 @@
         mc:Ignorable="d"
         Title="MINEFIELD // INFINITE PROTOCOL"
         Height="780" Width="1200"
-        MinHeight="600" MinWidth="800"
+        MinHeight="650" MinWidth="850"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -26,9 +26,9 @@
             <Grid.RowDefinitions>
                 <!-- Title Bar -->
                 <RowDefinition Height="40" />
-                <!-- Main Game / Skia Canvas Viewport Area -->
+                <!-- Main Viewport / Content Screen Area -->
                 <RowDefinition Height="*" />
-                <!-- Bottom Diagnostic / Status Strip -->
+                <!-- Bottom Status Strip -->
                 <RowDefinition Height="28" />
             </Grid.RowDefinitions>
 
@@ -42,6 +42,10 @@
                 <Grid Margin="12,0,8,0">
                     <Grid.ColumnDefinitions>
                         <!-- Title / Logo Area -->
+                        <ColumnDefinition Width="Auto" />
+                        <!-- Breadcrumb Badge -->
+                        <ColumnDefinition Width="Auto" />
+                        <!-- Threat Level Badge -->
                         <ColumnDefinition Width="Auto" />
                         <!-- Spacer -->
                         <ColumnDefinition Width="*" />
@@ -59,19 +63,21 @@
                                 <DropShadowEffect Color="#00E5FF" BlurRadius="6" ShadowDepth="0" Opacity="0.6"/>
                             </TextBlock.Effect>
                         </TextBlock>
-                        <TextBlock Text="// INFINITE SECTOR GRID" FontFamily="Consolas, Segoe UI" FontSize="11" Foreground="{StaticResource NeonCyanBrush}" VerticalAlignment="Center" Margin="0,0,12,0" Opacity="0.8" />
-
-                        <!-- Status Badge -->
-                        <Border Background="#1400E676" BorderBrush="#3300E676" BorderThickness="1" CornerRadius="3" Padding="6,2">
-                            <StackPanel Orientation="Horizontal">
-                                <Ellipse Width="6" Height="6" Fill="{StaticResource NeonEmeraldBrush}" Margin="0,0,5,0" />
-                                <TextBlock Text="ENGINE READY" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource NeonEmeraldBrush}" FontFamily="Consolas, Segoe UI" VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
+                        <TextBlock Text="// INFINITE PROTOCOL" FontFamily="Consolas, Segoe UI" FontSize="11" Foreground="{StaticResource NeonCyanBrush}" VerticalAlignment="Center" Margin="0,0,12,0" Opacity="0.8" />
                     </StackPanel>
 
+                    <!-- Active View Navigation Breadcrumb -->
+                    <Border Grid.Column="1" Background="#1400E5FF" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="3" Padding="8,2" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <TextBlock x:Name="TxtViewBreadcrumb" Text="MAIN MENU" FontSize="9" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" FontFamily="Consolas, Segoe UI" />
+                    </Border>
+
+                    <!-- Threat Level Badge -->
+                    <Border Grid.Column="2" x:Name="BadgeTitleThreat" Background="#1400E5FF" BorderBrush="{StaticResource NeonCyanBrush}" BorderThickness="1" CornerRadius="3" Padding="8,2" VerticalAlignment="Center">
+                        <TextBlock x:Name="TxtTitleThreat" Text="THREAT: STANDARD" FontSize="9" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" FontFamily="Consolas" />
+                    </Border>
+
                     <!-- Window Control Buttons (Minimize, Maximize/Restore, Close) -->
-                    <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Grid.Column="4" VerticalAlignment="Center">
                         <Button x:Name="BtnMinimize" Style="{StaticResource WindowActionButton}" Content="🗕" Click="BtnMinimize_Click" ToolTip="Minimize" />
                         <Button x:Name="BtnMaximize" Style="{StaticResource WindowActionButton}" Content="🗖" Click="BtnMaximize_Click" ToolTip="Maximize / Restore" Margin="4,0" />
                         <Button x:Name="BtnClose" Style="{StaticResource WindowCloseButton}" Content="✕" Click="BtnClose_Click" ToolTip="Close Application" />
@@ -79,9 +85,9 @@
                 </Grid>
             </Border>
 
-            <!-- ================= VIEWPORT AREA (SkiaSharp Canvas & HUD Overlay) ================= -->
+            <!-- ================= VIEWPORT & SCREENS AREA ================= -->
             <Grid Grid.Row="1" x:Name="ViewportGrid" Background="#060910" ClipToBounds="True">
-                <!-- SkiaSharp Immediate-Mode Canvas -->
+                <!-- SkiaSharp Immediate-Mode Canvas (Always rendering for ambient background effect) -->
                 <skia:SKElement x:Name="SkiaCanvas"
                                 Focusable="True"
                                 PaintSurface="SkiaCanvas_PaintSurface"
@@ -91,156 +97,950 @@
                                 MouseWheel="SkiaCanvas_MouseWheel"
                                 MouseLeave="SkiaCanvas_MouseLeave" />
 
-                <!-- In-Viewport Telemetry HUD Glass Card (Top Left) -->
-                <Border HorizontalAlignment="Left" VerticalAlignment="Top"
-                        Margin="16,14"
-                        Background="{StaticResource BgGlassBrush}"
-                        BorderBrush="{StaticResource BorderGlassBrush}"
-                        BorderThickness="1"
-                        CornerRadius="6"
-                        Padding="12,8"
-                        IsHitTestVisible="False">
-                    <StackPanel Orientation="Vertical">
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
-                            <TextBlock Text="COORDINATES: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
-                            <TextBlock x:Name="TxtWorldPos" Text="X: 0.0  Y: 0.0" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
-                            <TextBlock Text="GRID CELL:   " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
-                            <TextBlock x:Name="TxtCellPos" Text="[0, 0]" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonEmeraldBrush}" />
-                            <TextBlock Text="  SECTOR: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="6,0,0,0" />
-                            <TextBlock x:Name="TxtChunkPos" Text="[0, 0]" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonPurpleBrush}" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
-                            <TextBlock Text="CAMERA ZOOM: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
-                            <TextBlock x:Name="TxtZoom" Text="100%" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="STREAMING:   " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
-                            <TextBlock x:Name="TxtChunkCount" Text="0 SECTORS ACTIVE (SQLite)" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" />
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-
-                <!-- Navigation Controls Help Card (Top Right) -->
-                <Border HorizontalAlignment="Right" VerticalAlignment="Top"
-                        Margin="16,14"
-                        Background="{StaticResource BgGlassBrush}"
-                        BorderBrush="{StaticResource BorderGlassBrush}"
-                        BorderThickness="1"
-                        CornerRadius="6"
-                        Padding="10,6"
-                        IsHitTestVisible="True">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="PAN: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
-                        <TextBlock Text="Middle / Right Drag  " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" />
-                        <TextBlock Text="ZOOM: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
-                        <TextBlock Text="Wheel  " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" />
-                        <Button x:Name="BtnResetCamera" Content="RESET (0,0)" FontFamily="Consolas" FontSize="9"
-                                Background="#1A00E5FF" Foreground="{StaticResource NeonCyanBrush}"
-                                BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1"
-                                Padding="6,2" Cursor="Hand" Click="BtnResetCamera_Click" />
-                    </StackPanel>
-                </Border>
-
-                <!-- ================= TOP CENTER: PROGRESSION & STATS HUD ================= -->
-                <Border HorizontalAlignment="Center" VerticalAlignment="Top"
-                        Margin="0,14,0,0"
-                        Background="#E60A101D"
-                        BorderBrush="{StaticResource BorderActiveBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="16,8"
-                        Effect="{StaticResource PanelShadow}">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <!-- Level & Rank Badge -->
-                        <Border Background="#1A00E5FF" BorderBrush="{StaticResource NeonCyanBrush}" BorderThickness="1" CornerRadius="4" Padding="8,4" Margin="0,0,14,0">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="LVL " FontFamily="Consolas" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" />
-                                <TextBlock x:Name="TxtLevel" Text="01" FontFamily="Consolas" FontSize="12" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" />
-                                <TextBlock Text=" [OPERATIVE]" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" Margin="4,0,0,0" />
+                <!-- ================= 1. DEDICATED MAIN MENU PANEL ================= -->
+                <Grid x:Name="MainMenuPanel" Visibility="Visible">
+                    <Border Background="#CC070B14" />
+                    <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Width="740" MaxWidth="820"
+                            Background="{StaticResource BgGlassBrush}"
+                            BorderBrush="{StaticResource BorderActiveBrush}"
+                            BorderThickness="1.5"
+                            CornerRadius="12"
+                            Padding="36,28"
+                            Effect="{StaticResource PanelShadow}">
+                        <StackPanel Orientation="Vertical">
+                            <!-- Hero Title Block -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,6">
+                                <Border Width="40" Height="40" CornerRadius="8" Background="#2600E5FF" BorderBrush="{StaticResource NeonCyanBrush}" BorderThickness="1.5" Margin="0,0,14,0">
+                                    <TextBlock Text="⬢" Foreground="{StaticResource NeonCyanBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="24" Margin="0,-2,0,0">
+                                        <TextBlock.Effect>
+                                            <DropShadowEffect Color="#00E5FF" BlurRadius="12" ShadowDepth="0" Opacity="0.9"/>
+                                        </TextBlock.Effect>
+                                    </TextBlock>
+                                </Border>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="MINEFIELD" FontFamily="Consolas, Segoe UI" FontWeight="Black" FontSize="30" Foreground="{StaticResource TextPrimaryBrush}">
+                                        <TextBlock.Effect>
+                                            <DropShadowEffect Color="#00E5FF" BlurRadius="14" ShadowDepth="0" Opacity="0.7"/>
+                                        </TextBlock.Effect>
+                                    </TextBlock>
+                                    <TextBlock Text="INFINITE PROCEDURAL RECONNAISSANCE PROTOCOL" FontFamily="Consolas, Segoe UI" FontWeight="SemiBold" FontSize="10" Foreground="{StaticResource NeonCyanBrush}" Opacity="0.9" />
+                                </StackPanel>
                             </StackPanel>
-                        </Border>
 
-                        <!-- XP Bar -->
-                        <StackPanel VerticalAlignment="Center" Margin="0,0,16,0" Width="140">
-                            <Grid Margin="0,0,0,2">
-                                <TextBlock Text="EXPERIENCE" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Left" />
-                                <TextBlock x:Name="TxtXpProgress" Text="0 / 1,000" FontFamily="Consolas" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource NeonCyanBrush}" HorizontalAlignment="Right" />
-                            </Grid>
-                            <Border Height="7" Background="#142036" CornerRadius="3" BorderBrush="#203050" BorderThickness="1">
-                                <ProgressBar x:Name="PbXp" Value="0" Maximum="1000" Height="5" Background="Transparent" Foreground="{StaticResource NeonCyanBrush}" BorderThickness="0" Margin="1" />
+                            <!-- Guarantee Badge -->
+                            <Border HorizontalAlignment="Center" Background="#1400E676" BorderBrush="#3300E676" BorderThickness="1" CornerRadius="4" Padding="10,3" Margin="0,0,0,18">
+                                <TextBlock Text="ZERO 50/50 GUESSING GUARANTEE // 3-TIER DETERMINISTIC SOLVER" FontFamily="Consolas" FontSize="9" FontWeight="Bold" Foreground="{StaticResource NeonEmeraldBrush}" />
                             </Border>
-                        </StackPanel>
 
-                        <!-- Energy Stamina Bar -->
-                        <StackPanel VerticalAlignment="Center" Margin="0,0,16,0" Width="140">
-                            <Grid Margin="0,0,0,2">
-                                <TextBlock Text="ENERGY CORE" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Left" />
-                                <TextBlock x:Name="TxtEnergy" Text="100 / 100" FontFamily="Consolas" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource NeonEmeraldBrush}" HorizontalAlignment="Right" />
-                            </Grid>
-                            <Border Height="7" Background="#142036" CornerRadius="3" BorderBrush="#203050" BorderThickness="1">
-                                <ProgressBar x:Name="PbEnergy" Value="100" Maximum="100" Height="5" Background="Transparent" Foreground="{StaticResource NeonEmeraldBrush}" BorderThickness="0" Margin="1" />
+                            <!-- Operative Quick Status Pill -->
+                            <Border Background="#142036" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="6" Padding="14,8" Margin="0,0,0,22">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Operative Rank & Level -->
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="OPERATIVE: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                                        <TextBlock x:Name="TxtMenuRank" Text="LVL 01 [RECON SCOUT]" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" />
+                                    </StackPanel>
+
+                                    <Border Grid.Column="1" Width="1" Background="{StaticResource BorderGlassBrush}" Margin="10,0" />
+
+                                    <!-- Energy Core -->
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="ENERGY: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                                        <TextBlock x:Name="TxtMenuEnergy" Text="100 / 100" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonEmeraldBrush}" />
+                                    </StackPanel>
+
+                                    <Border Grid.Column="3" Width="1" Background="{StaticResource BorderGlassBrush}" Margin="10,0" />
+
+                                    <!-- Active Theme -->
+                                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="THEME: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                                        <TextBlock x:Name="TxtMenuTheme" Text="CYBERPUNK CYAN" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonPurpleBrush}" />
+                                    </StackPanel>
+                                </Grid>
                             </Border>
-                        </StackPanel>
 
-                        <!-- Combo Multiplier Badge -->
-                        <Border Background="#1AFFD600" BorderBrush="#88FFD600" BorderThickness="1" CornerRadius="4" Padding="8,4">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="COMBO " FontFamily="Consolas" FontSize="10" Foreground="#FFA726" VerticalAlignment="Center" />
-                                <TextBlock x:Name="TxtCombo" Text="x1.0" FontFamily="Consolas" FontSize="13" FontWeight="Bold" Foreground="#FFD600" VerticalAlignment="Center" />
+                            <!-- Primary Action Row: Continue vs New Expedition -->
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.2*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="BtnContinueGame" Grid.Column="0" Style="{StaticResource MenuPrimaryButton}" Content="▶  CONTINUE EXPEDITION" Click="BtnContinueGame_Click" Margin="0,0,6,0" />
+                                <Button x:Name="BtnNewGameModal" Grid.Column="1" Style="{StaticResource MenuSecondaryButton}" Content="✦  START NEW EXPEDITION" Click="BtnNewGameModal_Click" BorderBrush="{StaticResource NeonEmeraldBrush}" Foreground="{StaticResource NeonEmeraldBrush}" Margin="6,0,0,0" />
+                            </Grid>
+
+                            <!-- Secondary Navigation Grid (2x2) -->
+                            <Grid Margin="0,0,0,14">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Button x:Name="BtnOpenAchievements" Grid.Row="0" Grid.Column="0" Style="{StaticResource MenuSecondaryButton}" Margin="0,0,6,8" Click="BtnOpenAchievements_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="🏆  ACHIEVEMENTS ARCHIVE" />
+                                        <Border x:Name="BadgeMenuAchievements" Background="#2600E5FF" CornerRadius="3" Padding="5,1" Margin="8,0,0,0">
+                                            <TextBlock x:Name="TxtMenuAchievementsCount" Text="0/12" FontSize="9" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" />
+                                        </Border>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button x:Name="BtnOpenProfile" Grid.Row="0" Grid.Column="1" Style="{StaticResource MenuSecondaryButton}" Content="👤  OPERATIVE DOSSIER" Margin="6,0,0,8" Click="BtnOpenProfile_Click" />
+
+                                <Button x:Name="BtnOpenThemes" Grid.Row="1" Grid.Column="0" Style="{StaticResource MenuSecondaryButton}" Content="🎨  THEME MATRIX (5 THEMES)" Margin="0,0,6,0" Click="BtnOpenThemes_Click" />
+
+                                <Button x:Name="BtnOpenIntel" Grid.Row="1" Grid.Column="1" Style="{StaticResource MenuSecondaryButton}" Content="📡  TACTICAL INTEL &amp; MANUAL" Margin="6,0,0,0" Click="BtnOpenIntel_Click" />
+                            </Grid>
+
+                            <!-- Exit Application Button -->
+                            <Button x:Name="BtnExitGame" Style="{StaticResource MenuSecondaryButton}" Content="⏻  TERMINATE APPLICATION" Click="BtnExitGame_Click" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" Padding="20,6" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- ================= 2. IN-GAME VIEWPORT & HUD ================= -->
+                <Grid x:Name="InGameHudGrid" Visibility="Collapsed">
+                    <!-- In-Viewport Telemetry HUD Glass Card (Top Left) -->
+                    <Border HorizontalAlignment="Left" VerticalAlignment="Top"
+                            Margin="16,14"
+                            Background="{StaticResource BgGlassBrush}"
+                            BorderBrush="{StaticResource BorderGlassBrush}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="12,8"
+                            IsHitTestVisible="False">
+                        <StackPanel Orientation="Vertical">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                                <TextBlock Text="COORDINATES: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                                <TextBlock x:Name="TxtWorldPos" Text="X: 0.0  Y: 0.0" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" />
                             </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </Border>
-
-                <!-- ================= TARGETING BANNER (When Drone Active) ================= -->
-                <Border x:Name="BannerTargeting" HorizontalAlignment="Center" VerticalAlignment="Top"
-                        Margin="0,68,0,0" Visibility="Collapsed"
-                        Background="#CC00E5FF" BorderBrush="#FFFFFF" BorderThickness="1" CornerRadius="4" Padding="14,4">
-                    <TextBlock Text="🎯 TARGETING MODE ACTIVE: CLICK ANY CELL TO SCAN 3x3 SECTOR" FontFamily="Consolas" FontWeight="Bold" FontSize="11" Foreground="#080C14" />
-                </Border>
-
-                <!-- ================= BOTTOM CENTER: TECH TREE & ABILITY HOTBAR ================= -->
-                <Border HorizontalAlignment="Center" VerticalAlignment="Bottom"
-                        Margin="0,0,0,14"
-                        Background="#E60A101D"
-                        BorderBrush="{StaticResource BorderGlassBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Padding="10,6"
-                        Effect="{StaticResource PanelShadow}">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <!-- Ability 1: Recon Drone -->
-                        <Button x:Name="BtnDrone" Click="BtnDrone_Click" Cursor="Hand" Margin="0,0,8,0"
-                                Background="#1A00E5FF" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1"
-                                Padding="10,4">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                                <TextBlock Text="GRID CELL:   " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                                <TextBlock x:Name="TxtCellPos" Text="[0, 0]" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonEmeraldBrush}" />
+                                <TextBlock Text="  SECTOR: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="6,0,0,0" />
+                                <TextBlock x:Name="TxtChunkPos" Text="[0, 0]" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonPurpleBrush}" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                                <TextBlock Text="CAMERA ZOOM: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                                <TextBlock x:Name="TxtZoom" Text="100%" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                            </StackPanel>
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="⯐ RECON DRONE [1] " FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" />
-                                <Border Background="#3300E5FF" CornerRadius="3" Padding="4,1">
-                                    <TextBlock x:Name="TxtDroneCharges" Text="2x" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="#FFFFFF" />
+                                <TextBlock Text="STREAMING:   " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                                <TextBlock x:Name="TxtChunkCount" Text="0 SECTORS ACTIVE (SQLite)" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Navigation Controls & Pause Help Card (Top Right) -->
+                    <Border HorizontalAlignment="Right" VerticalAlignment="Top"
+                            Margin="16,14"
+                            Background="{StaticResource BgGlassBrush}"
+                            BorderBrush="{StaticResource BorderGlassBrush}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="10,6"
+                            IsHitTestVisible="True">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button x:Name="BtnPauseMenu" Content="⏸ MENU [ESC]" Style="{StaticResource BackMenuButton}" Click="BtnPauseMenu_Click" Margin="0,0,10,0" />
+                            <TextBlock Text="PAN: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                            <TextBlock Text="Drag  " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" />
+                            <TextBlock Text="ZOOM: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                            <TextBlock Text="Wheel  " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" />
+                            <Button x:Name="BtnResetCamera" Content="RESET (0,0)" FontFamily="Consolas" FontSize="9"
+                                    Background="#1A00E5FF" Foreground="{StaticResource NeonCyanBrush}"
+                                    BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1"
+                                    Padding="6,2" Cursor="Hand" Click="BtnResetCamera_Click" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Top Center: Progression & Stats HUD -->
+                    <Border HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Margin="0,14,0,0"
+                            Background="#E60A101D"
+                            BorderBrush="{StaticResource BorderActiveBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="16,8"
+                            Effect="{StaticResource PanelShadow}">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <!-- Level & Rank Badge -->
+                            <Border Background="#1A00E5FF" BorderBrush="{StaticResource NeonCyanBrush}" BorderThickness="1" CornerRadius="4" Padding="8,4" Margin="0,0,14,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="LVL " FontFamily="Consolas" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" />
+                                    <TextBlock x:Name="TxtLevel" Text="01" FontFamily="Consolas" FontSize="12" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" />
+                                    <TextBlock x:Name="TxtHudRankTitle" Text=" [RECON SCOUT]" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" Margin="4,0,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- XP Bar -->
+                            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0" Width="140">
+                                <Grid Margin="0,0,0,2">
+                                    <TextBlock Text="EXPERIENCE" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Left" />
+                                    <TextBlock x:Name="TxtXpProgress" Text="0 / 1,000" FontFamily="Consolas" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource NeonCyanBrush}" HorizontalAlignment="Right" />
+                                </Grid>
+                                <Border Height="7" Background="#142036" CornerRadius="3" BorderBrush="#203050" BorderThickness="1">
+                                    <ProgressBar x:Name="PbXp" Value="0" Maximum="1000" Height="5" Background="Transparent" Foreground="{StaticResource NeonCyanBrush}" BorderThickness="0" Margin="1" />
                                 </Border>
                             </StackPanel>
-                        </Button>
 
-                        <!-- Ability 2: Blast Shield -->
-                        <Border x:Name="BadgeShield" Margin="0,0,8,0" Background="#1400E676" BorderBrush="#4400E676" BorderThickness="1" CornerRadius="4" Padding="10,4">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="🛡 BLAST SHIELD [PASSIVE] " FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonEmeraldBrush}" />
-                                <Border Background="#3300E676" CornerRadius="3" Padding="4,1">
-                                    <TextBlock x:Name="TxtShieldCharges" Text="1 CHARGE" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="#FFFFFF" />
+                            <!-- Energy Stamina Bar -->
+                            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0" Width="140">
+                                <Grid Margin="0,0,0,2">
+                                    <TextBlock Text="ENERGY CORE" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Left" />
+                                    <TextBlock x:Name="TxtEnergy" Text="100 / 100" FontFamily="Consolas" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource NeonEmeraldBrush}" HorizontalAlignment="Right" />
+                                </Grid>
+                                <Border Height="7" Background="#142036" CornerRadius="3" BorderBrush="#203050" BorderThickness="1">
+                                    <ProgressBar x:Name="PbEnergy" Value="100" Maximum="100" Height="5" Background="Transparent" Foreground="{StaticResource NeonEmeraldBrush}" BorderThickness="0" Margin="1" />
                                 </Border>
                             </StackPanel>
-                        </Border>
 
-                        <!-- SFX Audio Toggle -->
-                        <Button x:Name="BtnAudioToggle" Click="BtnAudioToggle_Click" Cursor="Hand"
-                                Background="#1AFFFFFF" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1"
-                                Padding="8,4">
-                            <TextBlock x:Name="TxtAudioToggle" Text="🔊 SFX: ON [M]" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" />
-                        </Button>
+                            <!-- Combo Multiplier Badge -->
+                            <Border x:Name="BadgeCombo" Background="#1AFFD600" BorderBrush="#88FFD600" BorderThickness="1" CornerRadius="4" Padding="8,4">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="COMBO " FontFamily="Consolas" FontSize="10" Foreground="#FFA726" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="TxtCombo" Text="x1.0" FontFamily="Consolas" FontSize="13" FontWeight="Bold" Foreground="#FFD600" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Targeting Banner (When Drone Active) -->
+                    <Border x:Name="BannerTargeting" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Margin="0,68,0,0" Visibility="Collapsed"
+                            Background="#CC00E5FF" BorderBrush="#FFFFFF" BorderThickness="1" CornerRadius="4" Padding="14,4">
+                        <TextBlock Text="🎯 TARGETING MODE ACTIVE: CLICK ANY CELL TO SCAN 3x3 SECTOR" FontFamily="Consolas" FontWeight="Bold" FontSize="11" Foreground="#080C14" />
+                    </Border>
+
+                    <!-- Combo Shattered Alert Banner -->
+                    <Border x:Name="BannerComboShatter" HorizontalAlignment="Center" VerticalAlignment="Top"
+                            Margin="0,72,0,0" Visibility="Collapsed"
+                            Background="#E6FF1744" BorderBrush="#FFFFFF" BorderThickness="1.5" CornerRadius="4" Padding="14,4">
+                        <TextBlock Text="⚠ COMBO SHATTERED! MULTIPLIER RESET TO x1.0 // ENERGY PENALTY INFLICTED" FontFamily="Consolas" FontWeight="Bold" FontSize="11" Foreground="#FFFFFF" />
+                    </Border>
+
+                    <!-- Bottom Center: Tech Tree & Ability Hotbar -->
+                    <Border HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                            Margin="0,0,0,14"
+                            Background="#E60A101D"
+                            BorderBrush="{StaticResource BorderGlassBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="10,6"
+                            Effect="{StaticResource PanelShadow}">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <!-- Ability 1: Recon Drone -->
+                            <Button x:Name="BtnDrone" Click="BtnDrone_Click" Cursor="Hand" Margin="0,0,8,0"
+                                    Background="#1A00E5FF" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1"
+                                    Padding="10,4">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="⯐ RECON DRONE [1] " FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" />
+                                    <Border Background="#3300E5FF" CornerRadius="3" Padding="4,1">
+                                        <TextBlock x:Name="TxtDroneCharges" Text="2x" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="#FFFFFF" />
+                                    </Border>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Ability 2: Blast Shield -->
+                            <Border x:Name="BadgeShield" Margin="0,0,8,0" Background="#1400E676" BorderBrush="#4400E676" BorderThickness="1" CornerRadius="4" Padding="10,4">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🛡 BLAST SHIELD [PASSIVE] " FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonEmeraldBrush}" />
+                                    <Border Background="#3300E676" CornerRadius="3" Padding="4,1">
+                                        <TextBlock x:Name="TxtShieldCharges" Text="1 CHARGE" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="#FFFFFF" />
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- SFX Audio Toggle -->
+                            <Button x:Name="BtnAudioToggle" Click="BtnAudioToggle_Click" Cursor="Hand"
+                                    Background="#1AFFFFFF" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1"
+                                    Padding="8,4">
+                                <TextBlock x:Name="TxtAudioToggle" Text="🔊 SFX: ON [M]" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" />
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- ================= 3. ACHIEVEMENTS SECTION PANEL ================= -->
+                <Grid x:Name="AchievementsPanel" Visibility="Collapsed">
+                    <Border Background="#E6070B14" />
+                    <Border Margin="32,20"
+                            Background="{StaticResource BgGlassBrush}"
+                            BorderBrush="{StaticResource BorderActiveBrush}"
+                            BorderThickness="1.5"
+                            CornerRadius="10"
+                            Padding="24,18"
+                            Effect="{StaticResource PanelShadow}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <!-- Header -->
+                                <RowDefinition Height="Auto" />
+                                <!-- Category Filter Tabs -->
+                                <RowDefinition Height="Auto" />
+                                <!-- Scrollable Achievements Grid -->
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <!-- Header Bar -->
+                            <Grid Grid.Row="0" Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <Button x:Name="BtnAchievementsBack" Grid.Column="0" Style="{StaticResource BackMenuButton}" Content="← RETURN TO MENU" Click="BtnReturnToMenu_Click" Margin="0,0,16,0" />
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="🏆 TACTICAL ACHIEVEMENTS ARCHIVE" FontFamily="Consolas, Segoe UI" FontWeight="Bold" FontSize="18" Foreground="{StaticResource TextPrimaryBrush}" />
+                                    <TextBlock Text="COMBAT MILESTONES &amp; RECONNAISSANCE HONORS" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource NeonCyanBrush}" />
+                                </StackPanel>
+
+                                <!-- Completion Badge -->
+                                <Border Grid.Column="2" Background="#1400E676" BorderBrush="#3300E676" BorderThickness="1" CornerRadius="4" Padding="10,4" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="TxtAchievementsStats" Text="0 / 12 UNLOCKED (0%)" FontFamily="Consolas" FontSize="11" FontWeight="Bold" Foreground="{StaticResource NeonEmeraldBrush}" />
+                                </Border>
+
+                                <!-- Total Trophy XP -->
+                                <Border Grid.Column="3" Background="#1AFFD600" BorderBrush="#33FFD600" BorderThickness="1" CornerRadius="4" Padding="10,4" VerticalAlignment="Center">
+                                    <TextBlock x:Name="TxtAchievementsXp" Text="+0 BONUS XP" FontFamily="Consolas" FontSize="11" FontWeight="Bold" Foreground="#FFD600" />
+                                </Border>
+                            </Grid>
+
+                            <!-- Filter Tabs Row -->
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,14">
+                                <Button x:Name="BtnFilterAll" Content="ALL (12)" Style="{StaticResource BackMenuButton}" Click="BtnFilterAchievements_Click" Tag="All" Margin="0,0,6,0" />
+                                <Button x:Name="BtnFilterExploration" Content="EXPLORATION" Style="{StaticResource BackMenuButton}" Click="BtnFilterAchievements_Click" Tag="Exploration" Margin="0,0,6,0" />
+                                <Button x:Name="BtnFilterTactics" Content="TACTICS" Style="{StaticResource BackMenuButton}" Click="BtnFilterAchievements_Click" Tag="Tactics" Margin="0,0,6,0" />
+                                <Button x:Name="BtnFilterSurvival" Content="SURVIVAL" Style="{StaticResource BackMenuButton}" Click="BtnFilterAchievements_Click" Tag="Survival" Margin="0,0,6,0" />
+                                <Button x:Name="BtnFilterProgression" Content="PROGRESSION" Style="{StaticResource BackMenuButton}" Click="BtnFilterAchievements_Click" Tag="Progression" />
+                            </StackPanel>
+
+                            <!-- Scrollable Achievements Cards List -->
+                            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel x:Name="AchievementsContainer" Orientation="Vertical" Margin="0,0,8,0" />
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- ================= 4. OPERATIVE PROFILE SECTION PANEL ================= -->
+                <Grid x:Name="ProfilePanel" Visibility="Collapsed">
+                    <Border Background="#E6070B14" />
+                    <Border Margin="32,20"
+                            Background="{StaticResource BgGlassBrush}"
+                            BorderBrush="{StaticResource BorderActiveBrush}"
+                            BorderThickness="1.5"
+                            CornerRadius="10"
+                            Padding="24,18"
+                            Effect="{StaticResource PanelShadow}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <!-- Header Bar -->
+                            <Grid Grid.Row="0" Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Button x:Name="BtnProfileBack" Grid.Column="0" Style="{StaticResource BackMenuButton}" Content="← RETURN TO MENU" Click="BtnReturnToMenu_Click" Margin="0,0,16,0" />
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="👤 OPERATIVE DOSSIER // SERVICE RECORD" FontFamily="Consolas, Segoe UI" FontWeight="Bold" FontSize="18" Foreground="{StaticResource TextPrimaryBrush}" />
+                                    <TextBlock Text="PERSISTENT PROFILE PROGRESSION &amp; LIFETIME COMBAT TELEMETRY" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource NeonCyanBrush}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Main Profile Content (2 Columns) -->
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <!-- Operative Identity Card (Left) -->
+                                    <ColumnDefinition Width="340" />
+                                    <!-- Lifetime Telemetry Matrix (Right) -->
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Left Column: Operative Identity Card -->
+                                <Border Grid.Column="0" Background="#141E34" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,16,0">
+                                    <StackPanel Orientation="Vertical">
+                                        <!-- Insignia Emblem -->
+                                        <Border Width="64" Height="64" CornerRadius="32" Background="#1A00E5FF" BorderBrush="{StaticResource NeonCyanBrush}" BorderThickness="2" HorizontalAlignment="Center" Margin="0,6,0,12">
+                                            <TextBlock Text="⬡" Foreground="{StaticResource NeonCyanBrush}" FontSize="34" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-4,0,0">
+                                                <TextBlock.Effect>
+                                                    <DropShadowEffect Color="#00E5FF" BlurRadius="10" ShadowDepth="0" Opacity="0.8" />
+                                                </TextBlock.Effect>
+                                            </TextBlock>
+                                        </Border>
+
+                                        <TextBlock Text="OPERATIVE #0042" FontFamily="Consolas" FontWeight="Bold" FontSize="16" Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" />
+                                        <TextBlock x:Name="TxtProfileRank" Text="RANK: RECON SCOUT" FontFamily="Consolas" FontSize="11" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" HorizontalAlignment="Center" Margin="0,2,0,16" />
+
+                                        <!-- Level & XP -->
+                                        <Border Background="#0C1422" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,10">
+                                            <StackPanel>
+                                                <Grid Margin="0,0,0,4">
+                                                    <TextBlock x:Name="TxtProfileLevel" Text="LEVEL 01" FontFamily="Consolas" FontWeight="Bold" FontSize="11" Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Left" />
+                                                    <TextBlock x:Name="TxtProfileXp" Text="0 / 1,000 XP" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource NeonCyanBrush}" HorizontalAlignment="Right" />
+                                                </Grid>
+                                                <ProgressBar x:Name="PbProfileXp" Height="6" Background="#1A2840" Foreground="{StaticResource NeonCyanBrush}" BorderThickness="0" Value="0" Maximum="1000" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Core Vitals -->
+                                        <Border Background="#0C1422" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,10">
+                                            <StackPanel>
+                                                <Grid Margin="0,0,0,4">
+                                                    <TextBlock Text="ENERGY CORE" FontFamily="Consolas" FontWeight="Bold" FontSize="11" Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Left" />
+                                                    <TextBlock x:Name="TxtProfileEnergy" Text="100 / 100" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource NeonEmeraldBrush}" HorizontalAlignment="Right" />
+                                                </Grid>
+                                                <ProgressBar x:Name="PbProfileEnergy" Height="6" Background="#1A2840" Foreground="{StaticResource NeonEmeraldBrush}" BorderThickness="0" Value="100" Maximum="100" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Tactical Inventory -->
+                                        <Border Background="#0C1422" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,16">
+                                            <StackPanel>
+                                                <TextBlock Text="TACTICAL EQUIPMENT" FontFamily="Consolas" FontWeight="Bold" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,6" />
+                                                <Grid Margin="0,0,0,4">
+                                                    <TextBlock Text="⯐ Recon Drones:" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" />
+                                                    <TextBlock x:Name="TxtProfileDrones" Text="2 Charges Available" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" HorizontalAlignment="Right" />
+                                                </Grid>
+                                                <Grid>
+                                                    <TextBlock Text="🛡 Kinetic Blast Shield:" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" />
+                                                    <TextBlock x:Name="TxtProfileShields" Text="1 Layer Ready" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonEmeraldBrush}" HorizontalAlignment="Right" />
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Danger Zone: Reset Dossier -->
+                                        <Button x:Name="BtnResetProfile" Style="{StaticResource BackMenuButton}" Content="⚠ RESET SERVICE RECORD" Click="BtnResetProfile_Click" Foreground="#FF5252" BorderBrush="#44FF1744" Background="#1AFF1744" HorizontalAlignment="Center" FontSize="9" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Right Column: Lifetime Telemetry Matrix (2x4 Grid) -->
+                                <Border Grid.Column="1" Background="#141E34" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="8" Padding="18">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Grid.Row="0" Text="LIFETIME COMBAT &amp; EXPLORATION METRICS" FontFamily="Consolas" FontWeight="Bold" FontSize="12" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,14" />
+
+                                        <!-- 2x4 Metric Cards Grid -->
+                                        <UniformGrid Grid.Row="1" Columns="2" Rows="4">
+                                            <!-- Metric 1: Cells Cleared -->
+                                            <Border Background="#0C1422" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="4">
+                                                <StackPanel>
+                                                    <TextBlock Text="SAFE CELLS CLEARED" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" />
+                                                    <TextBlock x:Name="TxtStatCellsCleared" Text="0" FontFamily="Consolas" FontSize="18" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" Margin="0,2,0,0" />
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Metric 2: Mines Flagged -->
+                                            <Border Background="#0C1422" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="4">
+                                                <StackPanel>
+                                                    <TextBlock Text="CONFIRMED MINES FLAGGED" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" />
+                                                    <TextBlock x:Name="TxtStatMinesFlagged" Text="0" FontFamily="Consolas" FontSize="18" FontWeight="Bold" Foreground="{StaticResource NeonCrimsonBrush}" Margin="0,2,0,0" />
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Metric 3: Sectors Secured -->
+                                            <Border Background="#0C1422" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="4">
+                                                <StackPanel>
+                                                    <TextBlock Text="16x16 SECTORS SECURED" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" />
+                                                    <TextBlock x:Name="TxtStatSectorsLocked" Text="0" FontFamily="Consolas" FontSize="18" FontWeight="Bold" Foreground="{StaticResource NeonEmeraldBrush}" Margin="0,2,0,0" />
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Metric 4: Peak Combo -->
+                                            <Border Background="#0C1422" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="4">
+                                                <StackPanel>
+                                                    <TextBlock Text="PEAK COMBO MULTIPLIER" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" />
+                                                    <TextBlock x:Name="TxtStatHighestCombo" Text="x1.0" FontFamily="Consolas" FontSize="18" FontWeight="Bold" Foreground="#FFD600" Margin="0,2,0,0" />
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Metric 5: Shields Absorbed -->
+                                            <Border Background="#0C1422" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="4">
+                                                <StackPanel>
+                                                    <TextBlock Text="DETONATIONS SHIELDED" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" />
+                                                    <TextBlock x:Name="TxtStatShieldsAbsorbed" Text="0" FontFamily="Consolas" FontSize="18" FontWeight="Bold" Foreground="{StaticResource NeonEmeraldBrush}" Margin="0,2,0,0" />
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Metric 6: Longest Streak -->
+                                            <Border Background="#0C1422" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="4">
+                                                <StackPanel>
+                                                    <TextBlock Text="LONGEST SAFE STREAK" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" />
+                                                    <TextBlock x:Name="TxtStatLongestStreak" Text="0" FontFamily="Consolas" FontSize="18" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" Margin="0,2,0,0" />
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Metric 7: Total XP -->
+                                            <Border Background="#0C1422" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="4">
+                                                <StackPanel>
+                                                    <TextBlock Text="TOTAL XP ACCUMULATED" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" />
+                                                    <TextBlock x:Name="TxtStatTotalXp" Text="0" FontFamily="Consolas" FontSize="18" FontWeight="Bold" Foreground="{StaticResource NeonPurpleBrush}" Margin="0,2,0,0" />
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Metric 8: Sectors Visited -->
+                                            <Border Background="#0C1422" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="4">
+                                                <StackPanel>
+                                                    <TextBlock Text="SECTORS EXPLORED (SQLITE)" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" />
+                                                    <TextBlock x:Name="TxtStatSectorsVisited" Text="1" FontFamily="Consolas" FontSize="18" FontWeight="Bold" Foreground="{StaticResource NeonCyanBrush}" Margin="0,2,0,0" />
+                                                </StackPanel>
+                                            </Border>
+                                        </UniformGrid>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- ================= 5. THEMES MATRIX SECTION PANEL ================= -->
+                <Grid x:Name="ThemesPanel" Visibility="Collapsed">
+                    <Border Background="#E6070B14" />
+                    <Border Margin="32,20"
+                            Background="{StaticResource BgGlassBrush}"
+                            BorderBrush="{StaticResource BorderActiveBrush}"
+                            BorderThickness="1.5"
+                            CornerRadius="10"
+                            Padding="24,18"
+                            Effect="{StaticResource PanelShadow}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <!-- Header Bar -->
+                            <Grid Grid.Row="0" Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Button x:Name="BtnThemesBack" Grid.Column="0" Style="{StaticResource BackMenuButton}" Content="← RETURN TO MENU" Click="BtnReturnToMenu_Click" Margin="0,0,16,0" />
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="🎨 THEME MATRIX // VISUAL RECONFIGURATION" FontFamily="Consolas, Segoe UI" FontWeight="Bold" FontSize="18" Foreground="{StaticResource TextPrimaryBrush}" />
+                                    <TextBlock Text="SELECT A NEON PROTOCOL TO RE-THEME HUD AND SKIASHARP RENDERING" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource NeonCyanBrush}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Themes Cards Grid (5 Themes) -->
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <UniformGrid Columns="2" Margin="0,0,8,0">
+                                    <!-- Theme 1: Cyberpunk Cyan -->
+                                    <Border Background="#141E34" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1.5" CornerRadius="8" Padding="16" Margin="6">
+                                        <StackPanel>
+                                            <Grid Margin="0,0,0,8">
+                                                <TextBlock Text="CYBERPUNK CYAN" FontFamily="Consolas" FontWeight="Bold" FontSize="14" Foreground="#00E5FF" HorizontalAlignment="Left" />
+                                                <Border x:Name="BadgeThemeCyberpunk" Background="#2600E5FF" BorderBrush="#00E5FF" BorderThickness="1" CornerRadius="3" Padding="6,2" HorizontalAlignment="Right">
+                                                    <TextBlock Text="ACTIVE" FontFamily="Consolas" FontSize="9" FontWeight="Bold" Foreground="#00E5FF" />
+                                                </Border>
+                                            </Grid>
+                                            <TextBlock Text="Electric neon cyan with deep obsidian glass and ultraviolet accents." FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                                            <!-- Color Swatches -->
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                                <Border Width="28" Height="14" Background="#00E5FF" CornerRadius="2" Margin="0,0,6,0" />
+                                                <Border Width="28" Height="14" Background="#B388FF" CornerRadius="2" Margin="0,0,6,0" />
+                                                <Border Width="28" Height="14" Background="#00E676" CornerRadius="2" Margin="0,0,6,0" />
+                                                <Border Width="28" Height="14" Background="#070B14" BorderBrush="#3300E5FF" BorderThickness="1" CornerRadius="2" />
+                                            </StackPanel>
+                                            <Button Style="{StaticResource BackMenuButton}" Content="APPLY CYBERPUNK" Click="BtnThemeSelect_Click" Tag="cyberpunk" HorizontalAlignment="Left" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Theme 2: Matrix Terminal -->
+                                    <Border Background="#0D1A10" BorderBrush="#3300FF66" BorderThickness="1.5" CornerRadius="8" Padding="16" Margin="6">
+                                        <StackPanel>
+                                            <Grid Margin="0,0,0,8">
+                                                <TextBlock Text="MATRIX TERMINAL" FontFamily="Consolas" FontWeight="Bold" FontSize="14" Foreground="#00FF66" HorizontalAlignment="Left" />
+                                                <Border x:Name="BadgeThemeMatrix" Visibility="Collapsed" Background="#2600FF66" BorderBrush="#00FF66" BorderThickness="1" CornerRadius="3" Padding="6,2" HorizontalAlignment="Right">
+                                                    <TextBlock Text="ACTIVE" FontFamily="Consolas" FontSize="9" FontWeight="Bold" Foreground="#00FF66" />
+                                                </Border>
+                                            </Grid>
+                                            <TextBlock Text="Phosphor green digital rain terminal with pitch black glass." FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                                            <!-- Color Swatches -->
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                                <Border Width="28" Height="14" Background="#00FF66" CornerRadius="2" Margin="0,0,6,0" />
+                                                <Border Width="28" Height="14" Background="#76FF03" CornerRadius="2" Margin="0,0,6,0" />
+                                                <Border Width="28" Height="14" Background="#FFFF00" CornerRadius="2" Margin="0,0,6,0" />
+                                                <Border Width="28" Height="14" Background="#040D06" BorderBrush="#3300FF66" BorderThickness="1" CornerRadius="2" />
+                                            </StackPanel>
+                                            <Button Style="{StaticResource BackMenuButton}" Content="APPLY MATRIX" Click="BtnThemeSelect_Click" Tag="matrix" Foreground="#00FF66" BorderBrush="#3300FF66" HorizontalAlignment="Left" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Theme 3: Synthwave Neon -->
+                                    <Border Background="#1A0D26" BorderBrush="#33FF007F" BorderThickness="1.5" CornerRadius="8" Padding="16" Margin="6">
+                                        <StackPanel>
+                                            <Grid Margin="0,0,0,8">
+                                                <TextBlock Text="SYNTHWAVE NEON" FontFamily="Consolas" FontWeight="Bold" FontSize="14" Foreground="#FF007F" HorizontalAlignment="Left" />
+                                                <Border x:Name="BadgeThemeSynthwave" Visibility="Collapsed" Background="#26FF007F" BorderBrush="#FF007F" BorderThickness="1" CornerRadius="3" Padding="6,2" HorizontalAlignment="Right">
+                                                    <TextBlock Text="ACTIVE" FontFamily="Consolas" FontSize="9" FontWeight="Bold" Foreground="#FF007F" />
+                                                </Border>
+                                            </Grid>
+                                            <TextBlock Text="Retro-futuristic laser magenta, cyan gridlines, and twilight abyss." FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                                            <!-- Color Swatches -->
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                                <Border Width="28" Height="14" Background="#FF007F" CornerRadius="2" Margin="0,0,6,0" />
+                                                <Border Width="28" Height="14" Background="#00F0FF" CornerRadius="2" Margin="0,0,6,0" />
+                                                <Border Width="28" Height="14" Background="#FFD600" CornerRadius="2" Margin="0,0,6,0" />
+                                                <Border Width="28" Height="14" Background="#0E0517" BorderBrush="#33FF007F" BorderThickness="1" CornerRadius="2" />
+                                            </StackPanel>
+                                            <Button Style="{StaticResource BackMenuButton}" Content="APPLY SYNTHWAVE" Click="BtnThemeSelect_Click" Tag="synthwave" Foreground="#FF007F" BorderBrush="#33FF007F" HorizontalAlignment="Left" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Theme 4: Solaris Amber -->
+                                    <Border Background="#241508" BorderBrush="#33FFB300" BorderThickness="1.5" CornerRadius="8" Padding="16" Margin="6">
+                                        <StackPanel>
+                                            <Grid Margin="0,0,0,8">
+                                                <TextBlock Text="SOLARIS AMBER" FontFamily="Consolas" FontWeight="Bold" FontSize="14" Foreground="#FFB300" HorizontalAlignment="Left" />
+                                                <Border x:Name="BadgeThemeSolaris" Visibility="Collapsed" Background="#26FFB300" BorderBrush="#FFB300" BorderThickness="1" CornerRadius="3" Padding="6,2" HorizontalAlignment="Right">
+                                                    <TextBlock Text="ACTIVE" FontFamily="Consolas" FontSize="9" FontWeight="Bold" Foreground="#FFB300" />
+                                                </Border>
+                                            </Grid>
+                                            <TextBlock Text="High-contrast golden industrial telemetry with carbon black glass." FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                                            <!-- Color Swatches -->
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                                <Border Width="28" Height="14" Background="#FFB300" CornerRadius="2" Margin="0,0,6,0" />
+                                                <Border Width="28" Height="14" Background="#FF6D00" CornerRadius="2" Margin="0,0,6,0" />
+                                                <Border Width="28" Height="14" Background="#64DD17" CornerRadius="2" Margin="0,0,6,0" />
+                                                <Border Width="28" Height="14" Background="#120B03" BorderBrush="#33FFB300" BorderThickness="1" CornerRadius="2" />
+                                            </StackPanel>
+                                            <Button Style="{StaticResource BackMenuButton}" Content="APPLY SOLARIS" Click="BtnThemeSelect_Click" Tag="solaris" Foreground="#FFB300" BorderBrush="#33FFB300" HorizontalAlignment="Left" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Theme 5: Crimson Protocol -->
+                                    <Border Background="#24080D" BorderBrush="#33FF1744" BorderThickness="1.5" CornerRadius="8" Padding="16" Margin="6">
+                                        <StackPanel>
+                                            <Grid Margin="0,0,0,8">
+                                                <TextBlock Text="CRIMSON PROTOCOL" FontFamily="Consolas" FontWeight="Bold" FontSize="14" Foreground="#FF1744" HorizontalAlignment="Left" />
+                                                <Border x:Name="BadgeThemeCrimson" Visibility="Collapsed" Background="#26FF1744" BorderBrush="#FF1744" BorderThickness="1" CornerRadius="3" Padding="6,2" HorizontalAlignment="Right">
+                                                    <TextBlock Text="ACTIVE" FontFamily="Consolas" FontSize="9" FontWeight="Bold" Foreground="#FF1744" />
+                                                </Border>
+                                            </Grid>
+                                            <TextBlock Text="Emergency hazard red and stealth obsidian for high-stakes operatives." FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                                            <!-- Color Swatches -->
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                                <Border Width="28" Height="14" Background="#FF1744" CornerRadius="2" Margin="0,0,6,0" />
+                                                <Border Width="28" Height="14" Background="#FF5252" CornerRadius="2" Margin="0,0,6,0" />
+                                                <Border Width="28" Height="14" Background="#FF9100" CornerRadius="2" Margin="0,0,6,0" />
+                                                <Border Width="28" Height="14" Background="#0F0507" BorderBrush="#33FF1744" BorderThickness="1" CornerRadius="2" />
+                                            </StackPanel>
+                                            <Button Style="{StaticResource BackMenuButton}" Content="APPLY CRIMSON" Click="BtnThemeSelect_Click" Tag="crimson" Foreground="#FF1744" BorderBrush="#33FF1744" HorizontalAlignment="Left" />
+                                        </StackPanel>
+                                    </Border>
+                                </UniformGrid>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- ================= 6. TACTICAL INTEL & MANUAL PANEL ================= -->
+                <Grid x:Name="IntelPanel" Visibility="Collapsed">
+                    <Border Background="#E6070B14" />
+                    <Border Margin="32,20"
+                            Background="{StaticResource BgGlassBrush}"
+                            BorderBrush="{StaticResource BorderActiveBrush}"
+                            BorderThickness="1.5"
+                            CornerRadius="10"
+                            Padding="24,18"
+                            Effect="{StaticResource PanelShadow}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <!-- Header Bar -->
+                            <Grid Grid.Row="0" Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Button x:Name="BtnIntelBack" Grid.Column="0" Style="{StaticResource BackMenuButton}" Content="← RETURN TO MENU" Click="BtnReturnToMenu_Click" Margin="0,0,16,0" />
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="📡 TACTICAL INTEL // OPERATIONAL BRIEFING" FontFamily="Consolas, Segoe UI" FontWeight="Bold" FontSize="18" Foreground="{StaticResource TextPrimaryBrush}" />
+                                    <TextBlock Text="SYSTEM ARCHITECTURE, RECON RULES, AND PROTOCOLS" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource NeonCyanBrush}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Briefing Cards Scroll -->
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                <StackPanel Orientation="Vertical" Margin="0,0,8,0">
+                                    <!-- Briefing 1 -->
+                                    <Border Background="#141E34" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,10">
+                                        <StackPanel>
+                                            <TextBlock Text="⬢ 1. ZERO 50/50 GUESSING GUARANTEE" FontFamily="Consolas" FontWeight="Bold" FontSize="13" Foreground="{StaticResource NeonCyanBrush}" Margin="0,0,0,4" />
+                                            <TextBlock Text="Every sector in the infinite grid is verified by a 3-tier deterministic logical deduction engine (Single-Cell Solvability, Subset Subtraction, and Tank Exact Set Partitioning). A mine is never placed where it would require an ambiguous guess. All safe cells can be deduced through pure logic." FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" TextWrapping="Wrap" LineHeight="16" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Briefing 2 -->
+                                    <Border Background="#141E34" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,10">
+                                        <StackPanel>
+                                            <TextBlock Text="⬢ 2. INFINITE CHUNK PERSISTENCE &amp; STREAMING" FontFamily="Consolas" FontWeight="Bold" FontSize="13" Foreground="{StaticResource NeonEmeraldBrush}" Margin="0,0,0,4" />
+                                            <TextBlock Text="The grid is infinite across both X and Y axes, divided into 16x16 chunk sectors. Sectors are asynchronously streamed from SQLite and recycled via a zero-GC memory pool. Pan and zoom without bounds; distant sectors are automatically persisted and safely unmounted." FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" TextWrapping="Wrap" LineHeight="16" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Briefing 3 -->
+                                    <Border Background="#141E34" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,0,10">
+                                        <StackPanel>
+                                            <TextBlock Text="⬢ 3. CHORDING &amp; RAPID EXPEDITION" FontFamily="Consolas" FontWeight="Bold" FontSize="13" Foreground="{StaticResource NeonPurpleBrush}" Margin="0,0,0,4" />
+                                            <TextBlock Text="Double-clicking or middle-clicking on a revealed number that has all of its adjacent mines flagged will instantly chord (reveal) all remaining adjacent hidden cells. Zero-clue empty cells automatically trigger a cross-chunk breadth-first flood-fill." FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" TextWrapping="Wrap" LineHeight="16" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Briefing 4 -->
+                                    <Border Background="#141E34" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="6" Padding="16">
+                                        <StackPanel>
+                                            <TextBlock Text="⬢ 4. RECON DRONES &amp; KINETIC BLAST SHIELDS" FontFamily="Consolas" FontWeight="Bold" FontSize="13" Foreground="#FFD600" Margin="0,0,0,4" />
+                                            <TextBlock Text="Recon Drones ([1]) scan any 3x3 region with zero risk, safely revealing safe tiles and flagging mines. The Kinetic Blast Shield automatically absorbs an accidental mine detonation, saving your energy core and preserving your combo streak. Securing 16x16 sectors replenishes drone charges and shields!" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" TextWrapping="Wrap" LineHeight="16" />
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- ================= 7. IN-GAME PAUSE MODAL OVERLAY ================= -->
+                <Grid x:Name="PauseOverlayGrid" Visibility="Collapsed">
+                    <Border Background="#CC070B14" />
+                    <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Width="440"
+                            Background="{StaticResource BgGlassBrush}"
+                            BorderBrush="{StaticResource BorderActiveBrush}"
+                            BorderThickness="1.5"
+                            CornerRadius="10"
+                            Padding="28,24"
+                            Effect="{StaticResource PanelShadow}">
+                        <StackPanel Orientation="Vertical">
+                            <TextBlock Text="⏸ MISSION PAUSED" FontFamily="Consolas, Segoe UI" FontWeight="Black" FontSize="20" Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" Margin="0,0,0,4" />
+                            <TextBlock Text="GRID EXPLORATION STATE PRESERVED IN SQLITE" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource NeonCyanBrush}" HorizontalAlignment="Center" Margin="0,0,0,20" />
+
+                            <Button x:Name="BtnResumeGame" Style="{StaticResource MenuPrimaryButton}" Content="▶  RESUME EXPLORATION" Click="BtnResumeGame_Click" Margin="0,0,0,10" />
+                            <Button x:Name="BtnPauseNewGame" Style="{StaticResource MenuSecondaryButton}" Content="✦  START NEW EXPEDITION" Click="BtnNewGameModal_Click" BorderBrush="{StaticResource NeonEmeraldBrush}" Foreground="{StaticResource NeonEmeraldBrush}" Margin="0,0,0,8" />
+                            <Button x:Name="BtnPauseAchievements" Style="{StaticResource MenuSecondaryButton}" Content="🏆  ACHIEVEMENTS ARCHIVE" Click="BtnOpenAchievements_Click" Margin="0,0,0,8" />
+                            <Button x:Name="BtnPauseProfile" Style="{StaticResource MenuSecondaryButton}" Content="👤  OPERATIVE DOSSIER" Click="BtnOpenProfile_Click" Margin="0,0,0,8" />
+                            <Button x:Name="BtnPauseThemes" Style="{StaticResource MenuSecondaryButton}" Content="🎨  CHANGE THEME" Click="BtnOpenThemes_Click" Margin="0,0,0,8" />
+                            <Button x:Name="BtnPauseIntel" Style="{StaticResource MenuSecondaryButton}" Content="📡  TACTICAL INTEL" Click="BtnOpenIntel_Click" Margin="0,0,0,14" />
+                            <Button x:Name="BtnPauseMainMenu" Style="{StaticResource MenuSecondaryButton}" Content="🏠  RETURN TO MAIN MENU" Click="BtnPauseMainMenu_Click" Foreground="{StaticResource NeonCrimsonBrush}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- ================= 8. FLOATING ACHIEVEMENT TOAST NOTIFICATION ================= -->
+                <Border x:Name="AchievementToastBorder"
+                        HorizontalAlignment="Center" VerticalAlignment="Top"
+                        Margin="0,16,0,0" Visibility="Collapsed"
+                        Background="#F20A101D"
+                        BorderBrush="#FFD600"
+                        BorderThickness="1.5"
+                        CornerRadius="8"
+                        Padding="16,10"
+                        Effect="{StaticResource PanelShadow}">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Width="34" Height="34" CornerRadius="17" Background="#26FFD600" BorderBrush="#FFD600" BorderThickness="1.5" Margin="0,0,12,0">
+                            <TextBlock x:Name="TxtToastIcon" Text="🏆" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="ACHIEVEMENT UNLOCKED: " FontFamily="Consolas" FontSize="9" FontWeight="Bold" Foreground="#FFA726" />
+                                <TextBlock x:Name="TxtToastTitle" Text="FIRST CONTACT" FontFamily="Consolas" FontSize="11" FontWeight="Bold" Foreground="#FFD600" />
+                            </StackPanel>
+                            <TextBlock x:Name="TxtToastDesc" Text="Reveal your first safe sector coordinate." FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,2,0,0" />
+                        </StackPanel>
+                        <Border Background="#1AFFD600" BorderBrush="#33FFD600" BorderThickness="1" CornerRadius="4" Padding="6,2" Margin="14,0,0,0" VerticalAlignment="Center">
+                            <TextBlock x:Name="TxtToastXp" Text="+500 XP" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="#FFD600" />
+                        </Border>
                     </StackPanel>
                 </Border>
+
+                <!-- ================= 9. NEW EXPEDITION CONFIGURATION MODAL ================= -->
+                <Grid x:Name="NewGameModalGrid" Visibility="Collapsed">
+                    <Border Background="#D9050810" />
+                    <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Width="680" MaxWidth="760"
+                            Background="{StaticResource BgGlassBrush}"
+                            BorderBrush="{StaticResource BorderActiveBrush}"
+                            BorderThickness="1.5"
+                            CornerRadius="12"
+                            Padding="28,24"
+                            Effect="{StaticResource PanelShadow}">
+                        <StackPanel Orientation="Vertical">
+                            <!-- Header -->
+                            <TextBlock Text="✦ NEW EXPEDITION PROTOCOL CONFIGURATION" FontFamily="Consolas, Segoe UI" FontWeight="Black" FontSize="18" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,4" />
+                            <TextBlock Text="CONFIGURE THREAT LEVEL DENSITY AND WORLD GENERATION SEED" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource NeonCyanBrush}" Margin="0,0,0,18" />
+
+                            <!-- Threat Level Selector Cards -->
+                            <TextBlock Text="THREAT LEVEL MATRIX:" FontFamily="Consolas" FontWeight="Bold" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,8" />
+                            <UniformGrid Columns="2" Rows="2" Margin="0,0,0,16">
+                                <!-- Cadet -->
+                                <Border x:Name="CardThreatCadet" MouseDown="ThreatCard_Click" Tag="Cadet" Cursor="Hand" Background="#141E34" BorderBrush="#3300E676" BorderThickness="1.5" CornerRadius="6" Padding="12,10" Margin="4">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,4">
+                                            <TextBlock Text="CADET // LOW THREAT" FontFamily="Consolas" FontWeight="Bold" FontSize="11" Foreground="#00E676" HorizontalAlignment="Left" />
+                                            <RadioButton x:Name="RbThreatCadet" IsChecked="False" GroupName="ThreatLevel" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <TextBlock Text="12% Mines • -15 Energy on Hit • 2 Shields • 1.0x XP" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Standard -->
+                                <Border x:Name="CardThreatStandard" MouseDown="ThreatCard_Click" Tag="Standard" Cursor="Hand" Background="#2600E5FF" BorderBrush="{StaticResource NeonCyanBrush}" BorderThickness="1.5" CornerRadius="6" Padding="12,10" Margin="4">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,4">
+                                            <TextBlock Text="STANDARD // OPERATIVE" FontFamily="Consolas" FontWeight="Bold" FontSize="11" Foreground="{StaticResource NeonCyanBrush}" HorizontalAlignment="Left" />
+                                            <RadioButton x:Name="RbThreatStandard" IsChecked="True" GroupName="ThreatLevel" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <TextBlock Text="17% Mines • -25 Energy on Hit • 1 Shield • 1.5x XP" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Hazard -->
+                                <Border x:Name="CardThreatHazard" MouseDown="ThreatCard_Click" Tag="Hazard" Cursor="Hand" Background="#141E34" BorderBrush="#33FFA726" BorderThickness="1.5" CornerRadius="6" Padding="12,10" Margin="4">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,4">
+                                            <TextBlock Text="HAZARD // HIGH RISK" FontFamily="Consolas" FontWeight="Bold" FontSize="11" Foreground="#FFA726" HorizontalAlignment="Left" />
+                                            <RadioButton x:Name="RbThreatHazard" IsChecked="False" GroupName="ThreatLevel" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <TextBlock Text="22% Mines • -35 Energy on Hit • 1 Shield • 2.0x XP" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Nightmare -->
+                                <Border x:Name="CardThreatNightmare" MouseDown="ThreatCard_Click" Tag="Nightmare" Cursor="Hand" Background="#141E34" BorderBrush="#33FF1744" BorderThickness="1.5" CornerRadius="6" Padding="12,10" Margin="4">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,4">
+                                            <TextBlock Text="NIGHTMARE // HARDCORE" FontFamily="Consolas" FontWeight="Bold" FontSize="11" Foreground="#FF1744" HorizontalAlignment="Left" />
+                                            <RadioButton x:Name="RbThreatNightmare" IsChecked="False" GroupName="ThreatLevel" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <TextBlock Text="28% Mines • -50 Energy on Hit • 0 Shields • 3.0x XP" FontFamily="Consolas" FontSize="9" Foreground="{StaticResource TextMutedBrush}" />
+                                    </StackPanel>
+                                </Border>
+                            </UniformGrid>
+
+                            <!-- Seed Section -->
+                            <TextBlock Text="WORLD GENERATION SEED:" FontFamily="Consolas" FontWeight="Bold" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,6" />
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="TxtSeedInput" Grid.Column="0" Text="1337" FontFamily="Consolas" FontSize="12" FontWeight="Bold"
+                                         Background="#142036" Foreground="{StaticResource NeonCyanBrush}"
+                                         BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" Padding="10,6" VerticalContentAlignment="Center" Margin="0,0,8,0" />
+                                <Button x:Name="BtnRandomizeSeed" Grid.Column="1" Style="{StaticResource BackMenuButton}" Content="🎲 RANDOMIZE" Click="BtnRandomizeSeed_Click" />
+                            </Grid>
+
+                            <!-- Info Box -->
+                            <Border Background="#1400E5FF" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="4" Padding="12,8" Margin="0,0,0,20">
+                                <TextBlock Text="ℹ Initializing a new expedition clears previous sector terrain and starts fresh at sector [0, 0] with 100% core energy and your selected threat configuration." FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" TextWrapping="Wrap" />
+                            </Border>
+
+                            <!-- Action Buttons -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="BtnLaunchNewExpedition" Grid.Column="0" Style="{StaticResource MenuPrimaryButton}" Content="▶  LAUNCH EXPEDITION" Click="BtnLaunchNewExpedition_Click" Margin="0,0,8,0" />
+                                <Button x:Name="BtnCancelNewGame" Grid.Column="1" Style="{StaticResource BackMenuButton}" Content="✕ CANCEL" Click="BtnCancelNewGame_Click" Padding="18,10" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- ================= 10. CRITICAL CORE MELTDOWN / GAME OVER MODAL ================= -->
+                <Grid x:Name="GameOverModalGrid" Visibility="Collapsed">
+                    <Border Background="#E60D0507" />
+                    <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Width="520"
+                            Background="{StaticResource BgGlassBrush}"
+                            BorderBrush="#FF1744"
+                            BorderThickness="2"
+                            CornerRadius="12"
+                            Padding="32,26"
+                            Effect="{StaticResource PanelShadow}">
+                        <StackPanel Orientation="Vertical">
+                            <!-- Skull / Warning Icon -->
+                            <Border Width="56" Height="56" CornerRadius="28" Background="#26FF1744" BorderBrush="#FF1744" BorderThickness="2" HorizontalAlignment="Center" Margin="0,0,0,12">
+                                <TextBlock Text="⚠" Foreground="#FF1744" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-2,0,0">
+                                    <TextBlock.Effect>
+                                        <DropShadowEffect Color="#FF1744" BlurRadius="16" ShadowDepth="0" Opacity="0.9" />
+                                    </TextBlock.Effect>
+                                </TextBlock>
+                            </Border>
+
+                            <TextBlock Text="CRITICAL CORE FAILURE" FontFamily="Consolas, Segoe UI" FontWeight="Black" FontSize="22" Foreground="#FF1744" HorizontalAlignment="Center" />
+                            <TextBlock Text="SUIT ENERGY DEPLETED // EXPEDITION TERMINATED" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center" Margin="0,2,0,20" />
+
+                            <!-- Run Statistics Card -->
+                            <Border Background="#142036" BorderBrush="{StaticResource BorderGlassBrush}" BorderThickness="1" CornerRadius="6" Padding="16,12" Margin="0,0,0,22">
+                                <StackPanel>
+                                    <TextBlock Text="FINAL EXPEDITION TELEMETRY:" FontFamily="Consolas" FontWeight="Bold" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,10" />
+                                    <Grid Margin="0,0,0,6">
+                                        <TextBlock Text="SAFE CELLS CLEARED:" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <TextBlock x:Name="TxtGameOverCells" Text="0" FontFamily="Consolas" FontWeight="Bold" FontSize="10" Foreground="{StaticResource NeonCyanBrush}" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,6">
+                                        <TextBlock Text="SECTORS SECURED:" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <TextBlock x:Name="TxtGameOverSectors" Text="0" FontFamily="Consolas" FontWeight="Bold" FontSize="10" Foreground="{StaticResource NeonEmeraldBrush}" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,6">
+                                        <TextBlock Text="PEAK COMBO MULTIPLIER:" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <TextBlock x:Name="TxtGameOverCombo" Text="x1.0" FontFamily="Consolas" FontWeight="Bold" FontSize="10" Foreground="#FFD600" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,6">
+                                        <TextBlock Text="EXPEDITION XP HARVESTED:" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <TextBlock x:Name="TxtGameOverXp" Text="+0 XP" FontFamily="Consolas" FontWeight="Bold" FontSize="10" Foreground="{StaticResource NeonPurpleBrush}" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Grid>
+                                        <TextBlock Text="MINES DETONATED:" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                                        <TextBlock x:Name="TxtGameOverDetonations" Text="1" FontFamily="Consolas" FontWeight="Bold" FontSize="10" Foreground="#FF5252" HorizontalAlignment="Right" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Action Buttons -->
+                            <Button x:Name="BtnRebootExpedition" Style="{StaticResource MenuPrimaryButton}" Content="⟳  EMERGENCY REBOOT &amp; RESPAWN" Click="BtnRebootExpedition_Click" Margin="0,0,0,10" />
+                            <Button x:Name="BtnGameOverMenu" Style="{StaticResource MenuSecondaryButton}" Content="🏠  RETURN TO MAIN MENU" Click="BtnGameOverMenu_Click" Foreground="{StaticResource TextMutedBrush}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- Fullscreen Red Hazard Detonation Flash -->
+                <Border x:Name="HazardFlashBorder" IsHitTestVisible="False" Opacity="0.0"
+                        Background="#66FF1744" BorderBrush="#CCFF1744" BorderThickness="4" CornerRadius="10" />
             </Grid>
 
             <!-- ================= BOTTOM STATUS STRIP ================= -->
@@ -259,13 +1059,13 @@
                     <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center">
                         <TextBlock Text="CORE: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
                         <TextBlock Text="ACTIVE" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonEmeraldBrush}" Margin="0,0,16,0" />
-                        <TextBlock Text="ENGINE: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
-                        <TextBlock Text="SKIASHARP IMMEDIATE-MODE" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource NeonCyanBrush}" Margin="0,0,16,0" />
+                        <TextBlock Text="ACTIVE THEME: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                        <TextBlock x:Name="TxtStatusTheme" Text="CYBERPUNK CYAN" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource NeonCyanBrush}" Margin="0,0,16,0" />
                     </StackPanel>
 
                     <!-- Center Notification / Game Event Text -->
                     <TextBlock x:Name="TxtSectorStatus" Grid.Column="1"
-                               Text="STATUS: EXPLORATION ACTIVE"
+                               Text="STATUS: PROTOCOL READY"
                                FontFamily="Consolas" FontSize="10" FontWeight="Bold"
                                Foreground="{StaticResource NeonCyanBrush}"
                                HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -273,8 +1073,8 @@
                     <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Center">
                         <TextBlock Text="RENDER: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
                         <TextBlock x:Name="TxtFps" Text="60.0 FPS" FontFamily="Consolas" FontSize="10" FontWeight="Bold" Foreground="{StaticResource NeonEmeraldBrush}" Margin="0,0,16,0" />
-                        <TextBlock Text="TARGET: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
-                        <TextBlock Text="x64 STANDALONE" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource NeonPurpleBrush}" />
+                        <TextBlock Text="ENGINE: " FontFamily="Consolas" FontSize="10" Foreground="{StaticResource TextMutedBrush}" />
+                        <TextBlock Text="SKIASHARP IMMEDIATE" FontFamily="Consolas" FontSize="10" Foreground="{StaticResource NeonPurpleBrush}" />
                     </StackPanel>
                 </Grid>
             </Border>

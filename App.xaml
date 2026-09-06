@@ -84,5 +84,113 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- Main Menu Primary Action Button (Glowing Accent CTA) -->
+        <Style x:Key="MenuPrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#2600E5FF" />
+            <Setter Property="Foreground" Value="{StaticResource NeonCyanBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource NeonCyanBrush}" />
+            <Setter Property="BorderThickness" Value="1.5" />
+            <Setter Property="FontFamily" Value="Consolas, Segoe UI" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Padding" Value="24,14" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="pBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="pBorder" Property="Background" Value="#4D00E5FF" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                                <Setter TargetName="pBorder" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="{StaticResource NeonCyanColor}" BlurRadius="18" ShadowDepth="0" Opacity="0.8" />
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="pBorder" Property="Background" Value="#8000E5FF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Main Menu Secondary Glass Button -->
+        <Style x:Key="MenuSecondaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#1A0D1526" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderGlassBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontFamily" Value="Consolas, Segoe UI" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="18,10" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="sBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="sBorder" Property="Background" Value="#3300E5FF" />
+                                <Setter TargetName="sBorder" Property="BorderBrush" Value="{StaticResource NeonCyanBrush}" />
+                                <Setter Property="Foreground" Value="{StaticResource NeonCyanBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="sBorder" Property="Background" Value="#4D00E5FF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Back to Menu Button -->
+        <Style x:Key="BackMenuButton" TargetType="Button">
+            <Setter Property="Background" Value="#1A00E5FF" />
+            <Setter Property="Foreground" Value="{StaticResource NeonCyanBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderGlassBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontFamily" Value="Consolas, Segoe UI" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bBorder" Property="Background" Value="#3300E5FF" />
+                                <Setter TargetName="bBorder" Property="BorderBrush" Value="{StaticResource NeonCyanBrush}" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Application.Resources>
 </Application>

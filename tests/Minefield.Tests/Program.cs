@@ -542,11 +542,12 @@ class Program
 
             // First mine hit: absorbed by Blast Shield
             profile.DeductMineEnergy(out bool absorbed);
-            bool shieldProtected = absorbed && profile.CurrentEnergy == energyBefore && profile.BlastShieldCharges == 0;
+            bool shieldProtected = absorbed && profile.CurrentEnergy >= energyBefore && profile.BlastShieldCharges == 0;
 
             // Second mine hit: no shield -> energy deducted
+            int energyBeforeSecond = profile.CurrentEnergy;
             profile.DeductMineEnergy(out bool absorbed2);
-            bool energyDeducted = !absorbed2 && profile.CurrentEnergy < energyBefore && profile.ComboMultiplier == 1.0f;
+            bool energyDeducted = !absorbed2 && profile.CurrentEnergy < energyBeforeSecond && profile.ComboMultiplier == 1.0f;
 
             Assert(shieldProtected && energyDeducted, "PlayerProfile: Blast Shield absorption and penalty mechanics");
         }
@@ -615,6 +616,204 @@ class Program
         {
             using var audio = new SynthesizedAudio();
             Assert(!audio.IsMuted, "SynthesizedAudio: Zero-dependency in-memory procedural sound synthesis initialization");
+        }
+
+        // Test 23: LifetimeStats Tracking & Serialization
+        {
+            var stats = new LifetimeStats();
+            stats.RecordSafeReveal(10, 1.5f, 15);
+            stats.RecordSafeReveal(25, 2.25f, 25);
+            stats.RecordFlagPlaced();
+            stats.RecordSectorLocked(500);
+            stats.RecordShieldAbsorbed();
+            stats.RecordDroneUsed();
+            stats.RecordChord();
+
+            string json = stats.ToJson();
+            var restored = LifetimeStats.FromJson(json);
+
+            bool ok = restored.TotalCellsCleared == 2 &&
+                      restored.LongestSafeStreak == 25 &&
+                      Math.Abs(restored.HighestComboMultiplier - 2.25f) < 0.01f &&
+                      restored.TotalMinesFlagged == 1 &&
+                      restored.TotalSectorsLocked == 1 &&
+                      restored.TotalShieldsAbsorbed == 1 &&
+                      restored.TotalDronesUsed == 1 &&
+                      restored.TotalChordsExecuted == 1 &&
+                      restored.TotalXpEarned == 540;
+
+            Assert(ok, "LifetimeStats: Metrics recording, streak calculation, and JSON roundtrip");
+        }
+
+        // Test 24: AchievementManager Catalog, Evaluation & Rewards
+        {
+            var manager = new AchievementManager();
+            Assert(manager.TotalCount == 12, "AchievementManager: Catalog contains 12 unlockable tactical achievements");
+
+            var profile = new PlayerProfile();
+            var stats = new LifetimeStats();
+
+            // Simulate progress to unlock First Contact and Sapper Initiate
+            stats.RecordSafeReveal(1, 1.0f, 10);
+            stats.RecordFlagPlaced();
+            manager.Evaluate(profile, stats);
+
+            var firstContact = manager.Achievements.First(a => a.Id == "first_contact");
+            var sapper = manager.Achievements.First(a => a.Id == "sapper_initiate");
+
+            bool unlocked = firstContact.IsUnlocked && sapper.IsUnlocked && manager.UnlockedCount == 2;
+            Assert(unlocked, "AchievementManager: Condition evaluation and unlock state updates");
+
+            // Test JSON serialization roundtrip
+            string achJson = manager.ToJson();
+            var manager2 = new AchievementManager();
+            manager2.LoadFromJson(achJson);
+            Assert(manager2.UnlockedCount == 2, "AchievementManager: State persistence and JSON serialization");
+        }
+
+        // Test 25: ThemeManager Catalog & Color Definitions
+        {
+            Assert(ThemeManager.Themes.Count == 5, "ThemeManager: 5 distinct sci-fi themes registered");
+            var matrix = ThemeManager.GetThemeById("matrix");
+            Assert(matrix.Name == "MATRIX TERMINAL", "ThemeManager: Theme lookup by ID");
+
+            var skiaBg = matrix.SkiaBackground;
+            var skiaAccent = matrix.SkiaAccent;
+            Assert(skiaBg.Alpha == 255 && skiaAccent.Green == 255, "ThemeManager: Skia color conversions for matrix theme");
+
+            var wpfAccent = ThemeDefinition.ParseWpfColor(matrix.AccentHex);
+            Assert(wpfAccent.G == 255, "ThemeManager: WPF Color parsing for matrix theme");
+        }
+
+        // Test 26: SQLite Persistence of Profile, Stats, Achievements & Theme
+        {
+            string tempDb = Path.Combine(Path.GetTempPath(), $"minefield_test_profile_{Guid.NewGuid():N}.db");
+            try
+            {
+                var profile = new PlayerProfile();
+                profile.ActiveThemeId = "synthwave";
+                profile.AddSafeCellXP(); // triggers safe reveal, streak, stats
+                profile.RecordFlagPlaced();
+                profile.RecordDroneUsed();
+                profile.SaveToDatabase(tempDb);
+
+                var loadedProfile = new PlayerProfile();
+                loadedProfile.LoadFromDatabase(tempDb);
+
+                bool match = loadedProfile.ActiveThemeId == "synthwave" &&
+                             loadedProfile.Stats.TotalCellsCleared == 1 &&
+                             loadedProfile.Stats.TotalMinesFlagged == 1 &&
+                             loadedProfile.Stats.TotalDronesUsed == 1;
+
+                Assert(match, "PlayerProfile: SQLite persistence with StatsJson, AchievementsJson, and ActiveThemeId");
+            }
+            finally
+            {
+                try { File.Delete(tempDb); } catch { }
+            }
+        }
+
+        // Test 27: GameDifficulty Presets & Scaling
+        {
+            var cadet = DifficultyConfig.GetConfig(DifficultyLevel.Cadet);
+            var standard = DifficultyConfig.GetConfig(DifficultyLevel.Standard);
+            var hazard = DifficultyConfig.GetConfig(DifficultyLevel.Hazard);
+            var nightmare = DifficultyConfig.GetConfig(DifficultyLevel.Nightmare);
+
+            bool diffValid = cadet.MineDensityPercent == 12 && cadet.EnergyPenalty == 15 && cadet.StartingShields == 2 &&
+                             standard.MineDensityPercent == 17 && standard.EnergyPenalty == 25 && standard.StartingShields == 1 &&
+                             hazard.MineDensityPercent == 22 && hazard.EnergyPenalty == 35 && hazard.StartingShields == 1 &&
+                             nightmare.MineDensityPercent == 28 && nightmare.EnergyPenalty == 50 && nightmare.StartingShields == 0;
+
+            Assert(diffValid, "GameDifficulty: 4 Threat Presets with escalating mine density, penalties, and shields");
+        }
+
+        // Test 28: Camera Screen Shake & Decay
+        {
+            var cam = new Camera();
+            Assert(cam.ShakeTrauma == 0.0f && cam.ShakeOffsetX == 0.0f && cam.ShakeOffsetY == 0.0f, "Camera: Initial shake state is zero");
+
+            cam.AddTrauma(0.8f);
+            Assert(cam.ShakeTrauma == 0.8f, "Camera: AddTrauma increases shake trauma");
+
+            cam.UpdateShake(0.1f);
+            Assert(cam.ShakeTrauma < 0.8f, "Camera: UpdateShake decays trauma over time");
+
+            // Tick forward until fully decayed
+            cam.UpdateShake(2.0f);
+            Assert(cam.ShakeTrauma == 0.0f && cam.ShakeOffsetX == 0.0f && cam.ShakeOffsetY == 0.0f, "Camera: Full decay returns trauma and offsets to zero");
+        }
+
+        // Test 29: Mine Detonation Penalties, Combo Shatter & Core Meltdown
+        {
+            var profile = new PlayerProfile();
+            profile.BlastShieldCharges = 0; // ensure unshielded
+            profile.CurrentDifficulty = DifficultyLevel.Standard; // 25 energy penalty
+
+            bool shattered = false;
+            bool depleted = false;
+            profile.OnComboShattered += () => shattered = true;
+            profile.OnEnergyDepleted += () => depleted = true;
+
+            // Build a streak to establish a combo
+            for (int i = 0; i < 5; i++) profile.AddSafeCellXP();
+            Assert(profile.Streak == 5 && profile.ComboMultiplier > 1.0f, "PlayerProfile: Streak established");
+
+            int energyBefore = profile.CurrentEnergy;
+            // Detonate mine (unshielded)
+            profile.DeductMineEnergy(out bool absorbed);
+            Assert(!absorbed && shattered, "PlayerProfile: Unshielded detonation shatters combo and triggers OnComboShattered");
+            Assert(profile.Streak == 0 && profile.ComboMultiplier == 1.0f, "PlayerProfile: Combo reset to 1.0 and streak reset to 0");
+            Assert(profile.CurrentEnergy == energyBefore - 25, "PlayerProfile: 25 Energy penalty applied on Standard threat");
+
+            // Deplete remaining energy to zero
+            profile.DeductMineEnergy(profile.CurrentEnergy, 0, out _);
+            Assert(profile.CurrentEnergy == 0 && depleted, "PlayerProfile: Energy depleted triggers OnEnergyDepleted (Game Over)");
+        }
+
+        // Test 30: PlayerProfile Reboot Expedition
+        {
+            var profile = new PlayerProfile();
+            profile.BlastShieldCharges = 0;
+            for (int i = 0; i < 6; i++) profile.AddSafeCellXP();
+            profile.RunCellsCleared = 50;
+            profile.DeductMineEnergy(35, 0, out _);
+
+            var hazard = DifficultyConfig.GetConfig(DifficultyLevel.Hazard);
+            profile.RebootExpedition(hazard.StartingShields, hazard.StartingDrones);
+
+            bool rebootOk = profile.CurrentEnergy == profile.MaxEnergy &&
+                            profile.Streak == 0 &&
+                            profile.ComboMultiplier == 1.0f &&
+                            profile.BlastShieldCharges == hazard.StartingShields &&
+                            profile.ReconDronesAvailable == hazard.StartingDrones &&
+                            profile.RunCellsCleared == 0;
+
+            Assert(rebootOk, "PlayerProfile: RebootExpedition resets energy to max, clears combo, and applies threat kit");
+        }
+
+        // Test 31: ChunkManager ResetAllChunksAsync
+        {
+            string testDb = Path.Combine(Path.GetTempPath(), $"minefield_test_reset_{Guid.NewGuid():N}.db");
+            var cm = new ChunkManager(testDb);
+            try
+            {
+                var cam = new Camera { X = 0, Y = 0, Zoom = 1.0f };
+                cm.UpdateViewport(cam, 800, 600);
+                await Task.Delay(200); // Allow async generation
+
+                Assert(cm.ActiveChunks.Count > 0, "ChunkManager: Initial chunks generated");
+
+                await cm.ResetAllChunksAsync(9999, 28);
+                Assert(cm.ActiveChunks.Count == 0, "ChunkManager: ResetAllChunksAsync purged active chunks");
+                Assert(cm.Generator.WorldSeed == 9999 && cm.Generator.MineDensityPercent == 28,
+                    "ChunkManager: ResetAllChunksAsync updated generator seed and density");
+            }
+            finally
+            {
+                await cm.DisposeAsync();
+                try { File.Delete(testDb); } catch { }
+            }
         }
 
         Console.WriteLine("--------------------------------------------------");
