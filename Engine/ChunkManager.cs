@@ -175,6 +175,57 @@ public class ChunkManager : IAsyncDisposable
             chunk.IsLocked = entity.IsLocked;
             chunk.Deserialize(entity.Data);
             chunk.IsModified = false;
+
+            // Self-healing integrity check: verify loaded chunk matches the pure deterministic generator
+            bool isCorruptLegacy = false;
+            for (int ly = 0; ly < Chunk.Dimension; ly++)
+            {
+                int wy = chunk.WorldOriginY + ly;
+                for (int lx = 0; lx < Chunk.Dimension; lx++)
+                {
+                    int wx = chunk.WorldOriginX + lx;
+                    bool expectedMine = _boardGenerator.IsMineAt(wx, wy);
+                    if (chunk.IsMine(lx, ly) != expectedMine)
+                    {
+                        isCorruptLegacy = true;
+                        break;
+                    }
+
+                    if (!expectedMine && chunk.GetContent(lx, ly) != _boardGenerator.GetClueAt(wx, wy))
+                    {
+                        isCorruptLegacy = true;
+                        break;
+                    }
+                }
+                if (isCorruptLegacy) break;
+            }
+
+            if (isCorruptLegacy)
+            {
+                // Obsolete chunk detected from older generator version - regenerate with guaranteed exact clues
+                _boardGenerator.GenerateChunk(chunk);
+                chunk.IsModified = true;
+
+                // Update database
+                await _dbLock.WaitAsync().ConfigureAwait(false);
+                try
+                {
+                    using var db = new MinefieldDbContext(_dbPath);
+                    var existing = await db.Chunks.FindAsync(cx, cy).ConfigureAwait(false);
+                    if (existing != null)
+                    {
+                        existing.Data = chunk.Serialize();
+                        existing.IsLocked = chunk.IsLocked;
+                        existing.LastModified = DateTime.UtcNow;
+                        await db.SaveChangesAsync().ConfigureAwait(false);
+                    }
+                }
+                catch { }
+                finally
+                {
+                    _dbLock.Release();
+                }
+            }
         }
         else
         {

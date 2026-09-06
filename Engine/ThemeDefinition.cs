@@ -30,6 +30,8 @@ public class ThemeDefinition
     public SKColor SkiaBackground => ParseSkia(BgDarkHex);
     public SKColor SkiaAccent => ParseSkia(AccentHex);
     public SKColor SkiaSecondary => ParseSkia(SecondaryHex);
+    public SKColor SkiaEmerald => ParseSkia(EmeraldHex);
+    public SKColor SkiaCrimson => ParseSkia(CrimsonHex);
     public SKColor SkiaMinorGrid => new SKColor(SkiaAccent.Red, SkiaAccent.Green, SkiaAccent.Blue, 35);
     public SKColor SkiaMajorGrid => new SKColor(SkiaAccent.Red, SkiaAccent.Green, SkiaAccent.Blue, 180);
     public SKColor SkiaChunkBorderGlow => new SKColor(SkiaAccent.Red, SkiaAccent.Green, SkiaAccent.Blue, 60);

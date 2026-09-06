@@ -168,6 +168,12 @@ public class GameSession
             _profile.RecordFlagPlaced();
             _audio?.PlayFlag();
             OnFlagToggled?.Invoke(worldCellX, worldCellY);
+
+            // Check if placing this flag completes and locks the sector
+            if (chunk.CheckAndLock())
+            {
+                HandleSectorLocked(chunk);
+            }
         }
         else if (state == CellState.Flagged)
         {
@@ -254,6 +260,11 @@ public class GameSession
                         {
                             chunk.SetState(lx, ly, CellState.Flagged);
                             OnFlagToggled?.Invoke(wx, wy);
+
+                            if (chunk.CheckAndLock())
+                            {
+                                HandleSectorLocked(chunk);
+                            }
                         }
                         else
                         {
