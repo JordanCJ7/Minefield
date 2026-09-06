@@ -27,6 +27,8 @@ public class ChunkManager : IAsyncDisposable
     private readonly Task _workerTask;
     private readonly SemaphoreSlim _dbLock = new(1, 1);
 
+    private readonly BoardGenerator _boardGenerator = new();
+
     public ChunkPool Pool => _pool;
     public IReadOnlyDictionary<(int X, int Y), Chunk> ActiveChunks => _activeChunks;
 
@@ -144,19 +146,11 @@ public class ChunkManager : IAsyncDisposable
         }
         else
         {
-            // Create default blank chunk (cells hidden, 0 adjacent mines)
-            for (int ly = 0; ly < Chunk.Dimension; ly++)
-            {
-                for (int lx = 0; lx < Chunk.Dimension; lx++)
-                {
-                    chunk.SetCell(lx, ly, CellState.Hidden, CellContent.Empty);
-                }
-            }
+            // Generate mines and clues using deterministic solver and mutation loop
+            _boardGenerator.GenerateChunk(chunk, (nx, ny) =>
+                _activeChunks.TryGetValue((nx, ny), out Chunk? neighbor) ? neighbor : null);
 
-            chunk.IsGenerated = true;
-            chunk.IsModified = false;
-
-            // Persist new initial chunk in SQLite
+            // Persist new generated chunk in SQLite
             await _dbLock.WaitAsync().ConfigureAwait(false);
             try
             {
@@ -165,7 +159,7 @@ public class ChunkManager : IAsyncDisposable
                 {
                     ChunkX = cx,
                     ChunkY = cy,
-                    IsLocked = false,
+                    IsLocked = chunk.IsLocked,
                     Data = chunk.Serialize(),
                     LastModified = DateTime.UtcNow
                 });
@@ -175,6 +169,8 @@ public class ChunkManager : IAsyncDisposable
             {
                 _dbLock.Release();
             }
+
+            chunk.IsModified = false;
         }
 
         _activeChunks[(cx, cy)] = chunk;

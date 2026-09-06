@@ -12,6 +12,8 @@
     <Compile Include="..\..\Engine\TileDef.cs" Link="Engine\TileDef.cs" />
     <Compile Include="..\..\Engine\Chunk.cs" Link="Engine\Chunk.cs" />
     <Compile Include="..\..\Engine\ChunkPool.cs" Link="Engine\ChunkPool.cs" />
+    <Compile Include="..\..\Engine\DeterministicSolver.cs" Link="Engine\DeterministicSolver.cs" />
+    <Compile Include="..\..\Engine\BoardGenerator.cs" Link="Engine\BoardGenerator.cs" />
     <Compile Include="..\..\Engine\ChunkManager.cs" Link="Engine\ChunkManager.cs" />
     <Compile Include="..\..\Data\ChunkEntity.cs" Link="Data\ChunkEntity.cs" />
     <Compile Include="..\..\Data\PlayerProfileEntity.cs" Link="Data\PlayerProfileEntity.cs" />

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using SkiaSharp;
@@ -159,7 +160,6 @@ class Program
         // Test 8: Sector Lock Evaluation
         {
             var chunk = new Chunk { ChunkX = 0, ChunkY = 0 };
-            // Populate chunk: 10 mines, 246 safe cells
             for (int i = 0; i < 10; i++)
             {
                 chunk.SetCell(i, 0, CellState.Hidden, CellContent.Mine);
@@ -179,12 +179,10 @@ class Program
         // Test 9: ChunkPool recycling
         {
             var pool = new ChunkPool(initialPrewarm: 8);
-            int initialAvailable = pool.AvailableCount;
 
             Chunk rented1 = pool.Rent(10, 20);
             rented1.SetCell(0, 0, CellState.Revealed, 5);
 
-            Chunk rented2 = pool.Rent(30, 40);
             pool.Return(rented1);
 
             Chunk rentedAgain = pool.Rent(50, 60);
@@ -204,10 +202,9 @@ class Program
             {
                 MinefieldDbContext.InitializeDatabase(tempDb);
 
-                // Insert chunk into DB
                 byte[] sampleData = new byte[256];
-                sampleData[0] = 0x91; // Revealed Mine
-                sampleData[255] = 0x22; // Flagged with 2
+                sampleData[0] = 0x91;
+                sampleData[255] = 0x22;
 
                 using (var db = new MinefieldDbContext(tempDb))
                 {
@@ -222,7 +219,6 @@ class Program
                     db.SaveChanges();
                 }
 
-                // Query back
                 using (var db = new MinefieldDbContext(tempDb))
                 {
                     var entity = db.Chunks.Find(-42, 88);
@@ -254,10 +250,7 @@ class Program
                 var chunkManager = new ChunkManager(tempDb, poolPrewarm: 16);
                 var camera = new Camera { X = 0, Y = 0, Zoom = 1.0f };
 
-                // Trigger viewport update for 800x600 window
                 chunkManager.UpdateViewport(camera, 800f, 600f);
-
-                // Give background worker brief moment to stream initial chunks
                 await Task.Delay(300);
 
                 bool hasChunks = chunkManager.ActiveChunks.Count > 0;
@@ -274,6 +267,121 @@ class Program
                     try { File.Delete(tempDb); } catch { }
                 }
             }
+        }
+
+        // ----------------------------------------------------
+        // DETERMINISTIC SOLVER & GENERATOR TESTS
+        // ----------------------------------------------------
+        // Test 12: 3-Tier Solver logical deduction on classic patterns
+        {
+            var solver = new DeterministicSolver();
+            var chunk = new Chunk { ChunkX = 0, ChunkY = 0 };
+
+            // Set up a classic 1-2-1 pattern along row 1:
+            // Row 0: unknown cells (mines at (0, 0) and (2, 0))
+            // Row 1: clues 1 at (0,1), 2 at (1,1), 1 at (2,1)
+            chunk.SetCell(0, 0, CellState.Hidden, CellContent.Mine);
+            chunk.SetCell(1, 0, CellState.Hidden, CellContent.Empty); // safe!
+            chunk.SetCell(2, 0, CellState.Hidden, CellContent.Mine);
+
+            chunk.SetCell(0, 1, CellState.Hidden, 1);
+            chunk.SetCell(1, 1, CellState.Hidden, 2);
+            chunk.SetCell(2, 1, CellState.Hidden, 1);
+
+            // Starting safe cells: the revealed clues
+            var starting = new List<(int, int)> { (0, 1), (1, 1), (2, 1) };
+
+            // Fill remainder of chunk as empty so it doesn't interfere
+            for (int ly = 2; ly < Chunk.Dimension; ly++)
+            {
+                for (int lx = 0; lx < Chunk.Dimension; lx++)
+                {
+                    chunk.SetCell(lx, ly, CellState.Hidden, CellContent.Empty);
+                    starting.Add((lx, ly));
+                }
+            }
+
+            bool solved = solver.TrySolveChunk(chunk, starting, out int unsolved);
+            Assert(solved && unsolved == 0, "DeterministicSolver: 1-2-1 subset overlap logical deduction");
+        }
+
+        // Test 13: BoardGenerator generates fully solvable chunk
+        {
+            var generator = new BoardGenerator();
+            var chunk = new Chunk { ChunkX = 0, ChunkY = 0 };
+
+            generator.GenerateChunk(chunk);
+
+            int mines = chunk.CountMines();
+            bool validMineCount = mines >= 35 && mines <= 50;
+
+            // Verify starter zone in origin (center 3x3) has zero mines
+            bool starterSafe = true;
+            for (int sy = 7; sy <= 9; sy++)
+            {
+                for (int sx = 7; sx <= 9; sx++)
+                {
+                    if (chunk.IsMine(sx, sy)) starterSafe = false;
+                }
+            }
+
+            // Verify solver confirms 100% solvability
+            var solver = new DeterministicSolver();
+            var starting = new List<(int, int)>();
+            for (int sy = 7; sy <= 9; sy++)
+            {
+                for (int sx = 7; sx <= 9; sx++) starting.Add((sx, sy));
+            }
+
+            bool isSolvable = solver.TrySolveChunk(chunk, starting, out int unsolved);
+
+            Assert(validMineCount && starterSafe && isSolvable, "BoardGenerator: Deterministic generation with 0% forced guesses");
+        }
+
+        // Test 14: Cross-chunk edge consistency
+        {
+            var generator = new BoardGenerator();
+            var chunk0 = new Chunk { ChunkX = 0, ChunkY = 0 };
+            generator.GenerateChunk(chunk0);
+
+            var chunkEast = new Chunk { ChunkX = 1, ChunkY = 0 };
+            generator.GenerateChunk(chunkEast, (nx, ny) => nx == 0 && ny == 0 ? chunk0 : null);
+
+            // Verify that edge clues on chunkEast border (lx = 0) correctly reflect mines on chunk0 border (lx = 15)
+            bool boundaryAligned = true;
+            for (int ly = 0; ly < Chunk.Dimension; ly++)
+            {
+                if (chunkEast.IsMine(0, ly)) continue;
+
+                byte clue = chunkEast.GetContent(0, ly);
+                // Count adjacent mines including chunk0 (lx = 15)
+                byte expected = 0;
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    for (int dx = -1; dx <= 1; dx++)
+                    {
+                        if (dx == 0 && dy == 0) continue;
+                        int nx = 0 + dx;
+                        int ny = ly + dy;
+                        if (nx >= 0 && nx < 16 && ny >= 0 && ny < 16)
+                        {
+                            if (chunkEast.IsMine(nx, ny)) expected++;
+                        }
+                        else if (nx < 0 && ny >= 0 && ny < 16)
+                        {
+                            if (chunk0.IsMine(15, ny)) expected++;
+                        }
+                    }
+                }
+
+                if (clue != expected)
+                {
+                    boundaryAligned = false;
+                    break;
+                }
+            }
+
+            Assert(boundaryAligned, "BoardGenerator: Cross-sector edge boundary mine and clue alignment");
         }
 
         Console.WriteLine("--------------------------------------------------");
