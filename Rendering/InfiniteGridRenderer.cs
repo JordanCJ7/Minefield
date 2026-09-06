@@ -434,6 +434,28 @@ public class InfiniteGridRenderer : IDisposable
         canvas.DrawRect(0, 0, width, height, vignettePaint);
     }
 
+    /// <summary>
+    /// Dynamically applies the chosen theme palette to all Skia paints in real time.
+    /// </summary>
+    public void ApplyTheme(ThemeDefinition theme)
+    {
+        _backgroundPaint.Color = theme.SkiaBackground;
+        _minorGridPaint.Color = theme.SkiaMinorGrid;
+        _majorGridPaint.Color = theme.SkiaMajorGrid;
+        _chunkBorderGlowPaint.Color = theme.SkiaChunkBorderGlow;
+        _axisPaint.Color = theme.SkiaAxis;
+        _chunkLabelPaint.Color = theme.SkiaAccent;
+        _hoverCellPaint.Color = new SKColor(theme.SkiaAccent.Red, theme.SkiaAccent.Green, theme.SkiaAccent.Blue, 45);
+
+        for (int i = 1; i <= 8; i++)
+        {
+            if (i - 1 < theme.NumberColorsHex.Length)
+            {
+                _numberPaints[i].Color = ThemeDefinition.ParseSkia(theme.NumberColorsHex[i - 1]);
+            }
+        }
+    }
+
     public void Dispose()
     {
         _backgroundPaint.Dispose();

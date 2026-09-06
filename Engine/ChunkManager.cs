@@ -50,6 +50,38 @@ public class ChunkManager : IAsyncDisposable
         _workerTask = Task.Run(ProcessChunkQueueAsync);
     }
 
+    public BoardGenerator Generator => _boardGenerator;
+
+    /// <summary>
+    /// Resets all active chunks and wipes the persistent SQLite chunk table for a brand new expedition.
+    /// </summary>
+    public async Task ResetAllChunksAsync(int newWorldSeed, int newMineDensityPercent)
+    {
+        _boardGenerator.WorldSeed = newWorldSeed;
+        _boardGenerator.MineDensityPercent = newMineDensityPercent;
+
+        // 1. Recycle all in-memory active chunks
+        foreach (var kvp in _activeChunks)
+        {
+            _pool.Return(kvp.Value);
+        }
+        _activeChunks.Clear();
+        _queuedCoords.Clear();
+
+        // 2. Wipe SQLite chunk records
+        await _dbLock.WaitAsync();
+        try
+        {
+            using var db = new MinefieldDbContext(_dbPath);
+            await db.Database.ExecuteSqlRawAsync("DELETE FROM Chunks");
+        }
+        catch { }
+        finally
+        {
+            _dbLock.Release();
+        }
+    }
+
     /// <summary>
     /// Evaluates the current camera viewport and schedules required chunks for streaming
     /// while culling distant sectors.

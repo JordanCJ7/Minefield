@@ -15,17 +15,20 @@ public class BoardGenerator
     public const int DefaultMineCount = 42; // ~16.4% density on 16x16 (256 cells)
     public const int MaxMutations = 30;
 
+    public int WorldSeed { get; set; } = 1337;
+    public int MineDensityPercent { get; set; } = 17;
+
     /// <summary>
     /// Generates mines and clues for a 16x16 chunk, running the 3-tier solver
     /// and mutating ambiguous placements until 100% solvable.
     /// </summary>
     public void GenerateChunk(Chunk chunk, Func<int, int, Chunk?>? getNeighborChunk = null)
     {
-        int seed = unchecked(chunk.ChunkX * 73856093 ^ chunk.ChunkY * 19349663);
+        int seed = unchecked(WorldSeed ^ (chunk.ChunkX * 73856093) ^ (chunk.ChunkY * 19349663));
         var rng = new Random(seed);
 
         bool isOrigin = (chunk.ChunkX == 0 && chunk.ChunkY == 0);
-        int targetMines = DefaultMineCount;
+        int targetMines = Math.Clamp((int)(256 * (MineDensityPercent / 100.0f)), 15, 90);
 
         // 1. Determine starting safe foothold
         var startingSafeCells = new List<(int X, int Y)>();

@@ -22,6 +22,7 @@ public class GameSession
     public event Action<int, int>? OnMineDetonated;      // (worldCellX, worldCellY)
     public event Action<int, int>? OnSectorLocked;       // (chunkX, chunkY)
     public event Action<int, int>? OnFlagToggled;        // (worldCellX, worldCellY)
+    public event Action<bool>? OnDetonationTrauma;       // (shieldAbsorbed)
 
     public GameSession(ChunkManager chunkManager, PlayerProfile? profile = null, ParticleSystem? particles = null, SynthesizedAudio? audio = null)
     {
@@ -58,6 +59,7 @@ public class GameSession
         if (content == CellContent.Mine)
         {
             _profile.DeductMineEnergy(out bool shieldAbsorbed);
+            OnDetonationTrauma?.Invoke(shieldAbsorbed);
 
             if (shieldAbsorbed)
             {
@@ -163,6 +165,7 @@ public class GameSession
         if (state == CellState.Hidden)
         {
             chunk.SetState(lx, ly, CellState.Flagged);
+            _profile.RecordFlagPlaced();
             _audio?.PlayFlag();
             OnFlagToggled?.Invoke(worldCellX, worldCellY);
         }
@@ -210,6 +213,7 @@ public class GameSession
 
         if (flaggedCount == clue && hiddenNeighbors.Count > 0)
         {
+            _profile.RecordChord();
             foreach (var (hx, hy) in hiddenNeighbors)
             {
                 RevealCell(hx, hy);
@@ -225,6 +229,7 @@ public class GameSession
         if (_profile.ReconDronesAvailable <= 0) return;
 
         _profile.ReconDronesAvailable--;
+        _profile.RecordDroneUsed();
         float scanCenterX = (centerWorldCellX + 0.5f) * Camera.CellSize;
         float scanCenterY = (centerWorldCellY + 0.5f) * Camera.CellSize;
 

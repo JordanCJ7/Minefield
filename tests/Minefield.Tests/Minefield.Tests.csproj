@@ -19,6 +19,12 @@
     <Compile Include="..\..\Engine\PlayerProfile.cs" Link="Engine\PlayerProfile.cs" />
     <Compile Include="..\..\Engine\SynthesizedAudio.cs" Link="Engine\SynthesizedAudio.cs" />
     <Compile Include="..\..\Engine\GameSession.cs" Link="Engine\GameSession.cs" />
+    <Compile Include="..\..\Engine\LifetimeStats.cs" Link="Engine\LifetimeStats.cs" />
+    <Compile Include="..\..\Engine\Achievement.cs" Link="Engine\Achievement.cs" />
+    <Compile Include="..\..\Engine\AchievementManager.cs" Link="Engine\AchievementManager.cs" />
+    <Compile Include="..\..\Engine\ThemeDefinition.cs" Link="Engine\ThemeDefinition.cs" />
+    <Compile Include="..\..\Engine\ThemeManager.cs" Link="Engine\ThemeManager.cs" />
+    <Compile Include="..\..\Engine\GameDifficulty.cs" Link="Engine\GameDifficulty.cs" />
     <Compile Include="..\..\Rendering\ParticleSystem.cs" Link="Rendering\ParticleSystem.cs" />
     <Compile Include="..\..\Data\ChunkEntity.cs" Link="Data\ChunkEntity.cs" />
     <Compile Include="..\..\Data\PlayerProfileEntity.cs" Link="Data\PlayerProfileEntity.cs" />

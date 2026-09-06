@@ -28,6 +28,39 @@ public class Camera
     /// </summary>
     public float Zoom { get; set; } = 1.0f;
 
+    // Trauma-Based Screen Shake System
+    public float ShakeTrauma { get; private set; } = 0.0f;
+    public float ShakeOffsetX { get; private set; } = 0.0f;
+    public float ShakeOffsetY { get; private set; } = 0.0f;
+
+    /// <summary>
+    /// Adds trauma to the camera (0.0 to 1.0) for procedural screen shake.
+    /// </summary>
+    public void AddTrauma(float amount)
+    {
+        ShakeTrauma = Math.Clamp(ShakeTrauma + amount, 0.0f, 1.0f);
+    }
+
+    /// <summary>
+    /// Updates camera shake physics, decaying trauma quadratically over time.
+    /// </summary>
+    public void UpdateShake(float dt)
+    {
+        if (ShakeTrauma > 0)
+        {
+            ShakeTrauma = Math.Max(0, ShakeTrauma - dt * 2.2f);
+            float intensity = ShakeTrauma * ShakeTrauma; // Quadratic shake curve
+            float maxOffset = 26.0f;
+            ShakeOffsetX = (Random.Shared.NextSingle() * 2.0f - 1.0f) * maxOffset * intensity;
+            ShakeOffsetY = (Random.Shared.NextSingle() * 2.0f - 1.0f) * maxOffset * intensity;
+        }
+        else
+        {
+            ShakeOffsetX = 0.0f;
+            ShakeOffsetY = 0.0f;
+        }
+    }
+
     /// <summary>
     /// Translates camera in world units based on screen pixel delta.
     /// </summary>
@@ -54,8 +87,8 @@ public class Camera
         Zoom = targetZoom;
 
         // Reposition camera so worldPivotBefore remains under screenPivot
-        X = worldPivotBefore.X - (screenPivot.X - viewportWidth / 2.0f) / Zoom;
-        Y = worldPivotBefore.Y - (screenPivot.Y - viewportHeight / 2.0f) / Zoom;
+        X = worldPivotBefore.X - (screenPivot.X - ShakeOffsetX - viewportWidth / 2.0f) / Zoom;
+        Y = worldPivotBefore.Y - (screenPivot.Y - ShakeOffsetY - viewportHeight / 2.0f) / Zoom;
     }
 
     /// <summary>
@@ -66,6 +99,9 @@ public class Camera
         X = 0.0f;
         Y = 0.0f;
         Zoom = 1.0f;
+        ShakeTrauma = 0.0f;
+        ShakeOffsetX = 0.0f;
+        ShakeOffsetY = 0.0f;
     }
 
     /// <summary>
@@ -73,8 +109,8 @@ public class Camera
     /// </summary>
     public SKPoint ScreenToWorld(SKPoint screenPoint, float viewportWidth, float viewportHeight)
     {
-        float worldX = (screenPoint.X - viewportWidth / 2.0f) / Zoom + X;
-        float worldY = (screenPoint.Y - viewportHeight / 2.0f) / Zoom + Y;
+        float worldX = (screenPoint.X - ShakeOffsetX - viewportWidth / 2.0f) / Zoom + X;
+        float worldY = (screenPoint.Y - ShakeOffsetY - viewportHeight / 2.0f) / Zoom + Y;
         return new SKPoint(worldX, worldY);
     }
 
@@ -83,8 +119,8 @@ public class Camera
     /// </summary>
     public SKPoint WorldToScreen(SKPoint worldPoint, float viewportWidth, float viewportHeight)
     {
-        float screenX = (worldPoint.X - X) * Zoom + viewportWidth / 2.0f;
-        float screenY = (worldPoint.Y - Y) * Zoom + viewportHeight / 2.0f;
+        float screenX = (worldPoint.X - X) * Zoom + viewportWidth / 2.0f + ShakeOffsetX;
+        float screenY = (worldPoint.Y - Y) * Zoom + viewportHeight / 2.0f + ShakeOffsetY;
         return new SKPoint(screenX, screenY);
     }
 

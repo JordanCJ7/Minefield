@@ -23,5 +23,11 @@ public class PlayerProfileEntity
 
     public string UnlockedAbilitiesJson { get; set; } = "[]";
 
+    public string ActiveThemeId { get; set; } = "cyberpunk";
+
+    public string StatsJson { get; set; } = "{}";
+
+    public string AchievementsJson { get; set; } = "[]";
+
     public DateTime LastPlayed { get; set; } = DateTime.UtcNow;
 }

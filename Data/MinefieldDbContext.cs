@@ -75,6 +75,9 @@ public class MinefieldDbContext : DbContext
                 MaxEnergy = 100,
                 CurrentEnergy = 100,
                 UnlockedAbilitiesJson = "[\"ReconDrone\",\"BlastShield\"]",
+                ActiveThemeId = "cyberpunk",
+                StatsJson = "{}",
+                AchievementsJson = "[]",
                 LastPlayed = DateTime.UtcNow
             });
             context.SaveChanges();

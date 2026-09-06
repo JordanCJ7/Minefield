@@ -19,6 +19,9 @@ public class SynthesizedAudio : IDisposable
     private readonly SoundPlayer? _sectorLockPlayer;
     private readonly SoundPlayer? _droneScanPlayer;
     private readonly SoundPlayer? _shieldPlayer;
+    private readonly SoundPlayer? _menuClickPlayer;
+    private readonly SoundPlayer? _achievementPlayer;
+    private readonly SoundPlayer? _themePlayer;
 
     public SynthesizedAudio()
     {
@@ -30,6 +33,9 @@ public class SynthesizedAudio : IDisposable
             _sectorLockPlayer = CreatePlayer(CreateSectorLockWav());
             _droneScanPlayer = CreatePlayer(CreateDroneScanWav());
             _shieldPlayer = CreatePlayer(CreateShieldWav());
+            _menuClickPlayer = CreatePlayer(CreateMenuClickWav());
+            _achievementPlayer = CreatePlayer(CreateAchievementWav());
+            _themePlayer = CreatePlayer(CreateThemeSwitchedWav());
         }
         catch { }
     }
@@ -40,6 +46,9 @@ public class SynthesizedAudio : IDisposable
     public void PlaySectorLock() => PlayAsync(_sectorLockPlayer);
     public void PlayDroneScan() => PlayAsync(_droneScanPlayer);
     public void PlayShieldDeflect() => PlayAsync(_shieldPlayer);
+    public void PlayMenuClick() => PlayAsync(_menuClickPlayer);
+    public void PlayAchievementUnlocked() => PlayAsync(_achievementPlayer);
+    public void PlayThemeSwitched() => PlayAsync(_themePlayer);
 
     private void PlayAsync(SoundPlayer? player)
     {
@@ -135,6 +144,45 @@ public class SynthesizedAudio : IDisposable
         });
     }
 
+    private static byte[] CreateMenuClickWav()
+    {
+        // Crisp futuristic UI chirp (1200 Hz -> 1800 Hz) (60 ms)
+        return Synthesize(0.06, t =>
+        {
+            double freq = 1200 + (t / 0.06) * 600;
+            double env = Math.Sin(Math.PI * (t / 0.06));
+            return Math.Sin(2 * Math.PI * freq * t) * env * 0.4;
+        });
+    }
+
+    private static byte[] CreateAchievementWav()
+    {
+        // Ascending 4-tone triumphant fanfare (400 ms)
+        return Synthesize(0.40, t =>
+        {
+            double freq = t switch
+            {
+                < 0.10 => 587.33, // D5
+                < 0.20 => 739.99, // F#5
+                < 0.30 => 880.00, // A5
+                _ => 1174.66      // D6
+            };
+            double env = Math.Sin(Math.PI * (t / 0.40));
+            return Math.Sin(2 * Math.PI * freq * t) * env * 0.5;
+        });
+    }
+
+    private static byte[] CreateThemeSwitchedWav()
+    {
+        // Sci-Fi frequency sweep shimmer (180 ms)
+        return Synthesize(0.18, t =>
+        {
+            double freq = 400 + Math.Sin(2 * Math.PI * 8 * t) * 800 + (t / 0.18) * 400;
+            double env = Math.Exp(-5.0 * t);
+            return Math.Sin(2 * Math.PI * freq * t) * env * 0.4;
+        });
+    }
+
     private static byte[] Synthesize(double durationSeconds, Func<double, double> sampleGenerator, int sampleRate = 44100)
     {
         int numSamples = (int)(durationSeconds * sampleRate);
@@ -183,5 +231,8 @@ public class SynthesizedAudio : IDisposable
         _sectorLockPlayer?.Dispose();
         _droneScanPlayer?.Dispose();
         _shieldPlayer?.Dispose();
+        _menuClickPlayer?.Dispose();
+        _achievementPlayer?.Dispose();
+        _themePlayer?.Dispose();
     }
 }
